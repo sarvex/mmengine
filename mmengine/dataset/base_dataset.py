@@ -71,7 +71,7 @@ class Compose:
         Returns:
             str: Formatted string.
         """
-        format_string = self.__class__.__name__ + '('
+        format_string = f'{self.__class__.__name__}('
         for t in self.transforms:
             format_string += '\n'
             format_string += f'    {t}'
@@ -270,11 +270,7 @@ class BaseDataset(Dataset):
             data_info = copy.deepcopy(self.data_list[idx])
         # Some codebase needs `sample_idx` of data information. Here we convert
         # the idx to a positive number and save it in data information.
-        if idx >= 0:
-            data_info['sample_idx'] = idx
-        else:
-            data_info['sample_idx'] = len(self) + idx
-
+        data_info['sample_idx'] = idx if idx >= 0 else len(self) + idx
         return data_info
 
     def full_init(self):
@@ -544,15 +540,14 @@ class BaseDataset(Dataset):
         # Automatically join data directory with `self.root` if path value in
         # `self.data_prefix` is not an absolute path.
         for data_key, prefix in self.data_prefix.items():
-            if isinstance(prefix, str):
-                if not is_abs(prefix):
-                    self.data_prefix[data_key] = osp.join(
-                        self.data_root, prefix)
-                else:
-                    self.data_prefix[data_key] = prefix
-            else:
+            if not isinstance(prefix, str):
                 raise TypeError('prefix should be a string, but got '
                                 f'{type(prefix)}')
+            if is_abs(prefix):
+                self.data_prefix[data_key] = prefix
+            else:
+                self.data_prefix[data_key] = osp.join(
+                    self.data_root, prefix)
 
     @force_full_init
     def get_subset_(self, indices: Union[Sequence[int], int]) -> None:
@@ -737,10 +732,7 @@ class BaseDataset(Dataset):
                 # Return the last few data information.
                 sub_data_list = self.data_list[indices:]
         elif isinstance(indices, Sequence):
-            # Return the data information according to given indices.
-            sub_data_list = []
-            for idx in indices:
-                sub_data_list.append(self.data_list[idx])
+            sub_data_list = [self.data_list[idx] for idx in indices]
         else:
             raise TypeError('indices should be a int or sequence of int, '
                             f'but got {type(indices)}')
@@ -804,10 +796,7 @@ class BaseDataset(Dataset):
         Returns:
             int: The length of filtered dataset.
         """
-        if self.serialize_data:
-            return len(self.data_address)
-        else:
-            return len(self.data_list)
+        return len(self.data_address) if self.serialize_data else len(self.data_list)
 
     def _copy_without_annotation(self, memo=dict()) -> 'BaseDataset':
         """Deepcopy for all attributes other than ``data_list``,

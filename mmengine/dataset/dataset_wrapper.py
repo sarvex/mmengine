@@ -41,7 +41,7 @@ class ConcatDataset(_ConcatDataset):
                  lazy_init: bool = False,
                  ignore_keys: Union[str, List[str], None] = None):
         self.datasets: List[BaseDataset] = []
-        for i, dataset in enumerate(datasets):
+        for dataset in datasets:
             if isinstance(dataset, dict):
                 self.datasets.append(DATASETS.build(dataset))
             elif isinstance(dataset, BaseDataset):
@@ -433,8 +433,7 @@ class ClassBalancedDataset:
             # dataset. Hence, if the `cat_ids` is empty,
             # the repeat_factor should be 1.
             repeat_factor: float = 1.
-            cat_ids = set(self.dataset.get_cat_ids(idx))
-            if len(cat_ids) != 0:
+            if cat_ids := set(self.dataset.get_cat_ids(idx)):
                 repeat_factor = max(
                     {category_repeat[cat_id]
                      for cat_id in cat_ids})

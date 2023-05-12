@@ -67,11 +67,12 @@ def build_from_cfg(
         raise TypeError(
             f'cfg should be a dict, ConfigDict or Config, but got {type(cfg)}')
 
-    if 'type' not in cfg:
-        if default_args is None or 'type' not in default_args:
-            raise KeyError(
-                '`cfg` or `default_args` must contain the key "type", '
-                f'but got {cfg}\n{default_args}')
+    if 'type' not in cfg and (
+        default_args is None or 'type' not in default_args
+    ):
+        raise KeyError(
+            '`cfg` or `default_args` must contain the key "type", '
+            f'but got {cfg}\n{default_args}')
 
     if not isinstance(registry, Registry):
         raise TypeError('registry must be a mmengine.Registry object, '
@@ -241,13 +242,12 @@ def build_model_from_cfg(
         nn.Module: A built nn.Module.
     """
     from ..model import Sequential
-    if isinstance(cfg, list):
-        modules = [
-            build_from_cfg(_cfg, registry, default_args) for _cfg in cfg
-        ]
-        return Sequential(*modules)
-    else:
+    if not isinstance(cfg, list):
         return build_from_cfg(cfg, registry, default_args)
+    modules = [
+        build_from_cfg(_cfg, registry, default_args) for _cfg in cfg
+    ]
+    return Sequential(*modules)
 
 
 def build_scheduler_from_cfg(
@@ -289,8 +289,7 @@ def build_scheduler_from_cfg(
             args.setdefault(name, value)
     scope = args.pop('_scope_', None)
     with registry.switch_scope_and_registry(scope) as registry:
-        convert_to_iter = args.pop('convert_to_iter_based', False)
-        if convert_to_iter:
+        if convert_to_iter := args.pop('convert_to_iter_based', False):
             scheduler_type = args.pop('type')
             assert 'epoch_length' in args and args.get('by_epoch', True), (
                 'Only epoch-based parameter scheduler can be converted to '

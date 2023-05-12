@@ -34,12 +34,14 @@ def calc_dynamic_intervals(
 
     assert is_list_of(dynamic_interval_list, tuple)
 
-    dynamic_milestones = [0]
-    dynamic_milestones.extend(
-        [dynamic_interval[0] for dynamic_interval in dynamic_interval_list])
-    dynamic_intervals = [start_interval]
-    dynamic_intervals.extend(
-        [dynamic_interval[1] for dynamic_interval in dynamic_interval_list])
+    dynamic_milestones = [
+        0,
+        *[dynamic_interval[0] for dynamic_interval in dynamic_interval_list],
+    ]
+    dynamic_intervals = [
+        start_interval,
+        *[dynamic_interval[1] for dynamic_interval in dynamic_interval_list],
+    ]
     return dynamic_milestones, dynamic_intervals
 
 

@@ -26,7 +26,7 @@ class TestAveragedModel(TestCase):
             torch.zeros_like(param) for param in model.parameters()
         ]
         n_updates = 2
-        for i in range(n_updates):
+        for _ in range(n_updates):
             for p, p_avg in zip(model.parameters(), averaged_params):
                 p.detach().add_(torch.randn_like(p))
                 p_avg += p.detach() / n_updates
@@ -60,7 +60,7 @@ class TestAveragedModel(TestCase):
             torch.zeros_like(param) for param in model.parameters()
         ]
         n_updates = 10
-        for i in range(n_updates):
+        for _ in range(n_updates):
             for p, p_avg in zip(model.parameters(), averaged_params):
                 p.detach().add_(torch.randn_like(p))
                 p_avg += p.detach() / n_updates
@@ -77,7 +77,7 @@ class TestAveragedModel(TestCase):
         averaged_model = StochasticWeightAverage(model)
         averaged_model2 = StochasticWeightAverage(model)
         n_updates = 10
-        for i in range(n_updates):
+        for _ in range(n_updates):
             for p in model.parameters():
                 p.detach().add_(torch.randn_like(p))
             averaged_model.update_parameters(model)

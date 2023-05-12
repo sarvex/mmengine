@@ -163,7 +163,7 @@ class Visualizer(ManagerMixin):
     ) -> None:
         super().__init__(name)
         self._dataset_meta: Optional[dict] = None
-        self._vis_backends: Union[Dict, Dict[str, 'BaseVisBackend']] = dict()
+        self._vis_backends: Union[Dict, Dict[str, 'BaseVisBackend']] = {}
 
         if save_dir is None:
             print_log(
@@ -181,15 +181,14 @@ class Visualizer(ManagerMixin):
                     raise RuntimeError(
                         'If one of them has a name attribute, '
                         'all backends must use the name attribute')
-                else:
-                    type_names = [
-                        vis_backend['type'] for vis_backend in vis_backends
-                    ]
-                    if len(set(type_names)) != len(type_names):
-                        raise RuntimeError(
-                            'The same vis backend cannot exist in '
-                            '`vis_backend` config. '
-                            'Please specify the name field.')
+                type_names = [
+                    vis_backend['type'] for vis_backend in vis_backends
+                ]
+                if len(set(type_names)) != len(type_names):
+                    raise RuntimeError(
+                        'The same vis backend cannot exist in '
+                        '`vis_backend` config. '
+                        'Please specify the name field.')
 
             if None not in names and len(set(names)) != len(names):
                 raise RuntimeError('The name fields cannot be the same')
@@ -357,11 +356,12 @@ class Visualizer(ManagerMixin):
         Returns:
             bool: Whether the position is in image.
         """
-        flag = (position[..., 0] < self.width).all() and \
-               (position[..., 0] >= 0).all() and \
-               (position[..., 1] < self.height).all() and \
-               (position[..., 1] >= 0).all()
-        return flag
+        return (
+            (position[..., 0] < self.width).all()
+            and (position[..., 0] >= 0).all()
+            and (position[..., 1] < self.height).all()
+            and (position[..., 1] >= 0).all()
+        )
 
     @master_only
     def draw_points(self,
@@ -669,10 +669,7 @@ class Visualizer(ManagerMixin):
         radius = radius.tolist()
         edge_colors = color_val_matplotlib(edge_colors)  # type: ignore
         face_colors = color_val_matplotlib(face_colors)  # type: ignore
-        circles = []
-        for i in range(len(center)):
-            circles.append(Circle(tuple(center[i]), radius[i]))
-
+        circles = [Circle(tuple(center[i]), radius[i]) for i in range(len(center))]
         if isinstance(line_widths, (int, float)):
             line_widths = [line_widths] * len(circles)
         line_widths = [
@@ -745,7 +742,7 @@ class Visualizer(ManagerMixin):
             (bboxes[:, 0], bboxes[:, 1], bboxes[:, 2], bboxes[:, 1],
              bboxes[:, 2], bboxes[:, 3], bboxes[:, 0], bboxes[:, 3]),
             axis=-1).reshape(-1, 4, 2)
-        poly = [p for p in poly]
+        poly = list(poly)
         return self.draw_polygons(
             poly,
             alpha=alpha,

@@ -49,8 +49,7 @@ def parse_args():
         help='job launcher')
     parser.add_argument('--local_rank', type=int, default=0)
 
-    args = parser.parse_args()
-    return args
+    return parser.parse_args()
 
 
 def main():
@@ -90,7 +89,7 @@ def main():
         optim_wrapper=dict(optimizer=dict(type=SGD, lr=0.001, momentum=0.9)),
         train_cfg=dict(by_epoch=True, max_epochs=2, val_interval=1),
         val_dataloader=val_dataloader,
-        val_cfg=dict(),
+        val_cfg={},
         val_evaluator=dict(type=Accuracy),
         launcher=args.launcher,
     )

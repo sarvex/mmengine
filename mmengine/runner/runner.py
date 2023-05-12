@@ -275,18 +275,18 @@ class Runner:
 
         # recursively copy the `cfg` because `self.cfg` will be modified
         # everywhere.
-        if cfg is not None:
-            if isinstance(cfg, Config):
-                self.cfg = copy.deepcopy(cfg)
-            elif isinstance(cfg, dict):
-                self.cfg = Config(cfg)
-        else:
-            self.cfg = Config(dict())
+        if cfg is None:
+            self.cfg = Config({})
 
+        elif isinstance(cfg, Config):
+            self.cfg = copy.deepcopy(cfg)
+        elif isinstance(cfg, dict):
+            self.cfg = Config(cfg)
         # lazy initialization
         training_related = [train_dataloader, train_cfg, optim_wrapper]
-        if not (all(item is None for item in training_related)
-                or all(item is not None for item in training_related)):
+        if any(item is not None for item in training_related) and any(
+            item is None for item in training_related
+        ):
             raise ValueError(
                 'train_dataloader, train_cfg, and optim_wrapper should be '
                 'either all None or not None, but got '
@@ -317,9 +317,9 @@ class Runner:
         self.param_schedulers = param_scheduler
 
         val_related = [val_dataloader, val_cfg, val_evaluator]
-        if not (all(item is None
-                    for item in val_related) or all(item is not None
-                                                    for item in val_related)):
+        if any(item is not None for item in val_related) and any(
+            item is None for item in val_related
+        ):
             raise ValueError(
                 'val_dataloader, val_cfg, and val_evaluator should be either '
                 'all None or not None, but got '
@@ -330,8 +330,9 @@ class Runner:
         self._val_evaluator = val_evaluator
 
         test_related = [test_dataloader, test_cfg, test_evaluator]
-        if not (all(item is None for item in test_related)
-                or all(item is not None for item in test_related)):
+        if any(item is not None for item in test_related) and any(
+            item is None for item in test_related
+        ):
             raise ValueError(
                 'test_dataloader, test_cfg, and test_evaluator should be '
                 'either all None or not None, but got '
@@ -342,11 +343,7 @@ class Runner:
         self._test_evaluator = test_evaluator
 
         self._launcher = launcher
-        if self._launcher == 'none':
-            self._distributed = False
-        else:
-            self._distributed = True
-
+        self._distributed = self._launcher != 'none'
         # self._timestamp will be set in the `setup_env` method. Besides,
         # it also will initialize multi-process and (or) distributed
         # environment.
@@ -370,7 +367,7 @@ class Runner:
         self.default_scope = DefaultScope.get_instance(
             self._experiment_name, scope_name=default_scope)
         # Build log processor to format message.
-        log_processor = dict() if log_processor is None else log_processor
+        log_processor = {} if log_processor is None else log_processor
         self.log_processor = self.build_log_processor(log_processor)
         # Since `get_instance` could return any subclass of ManagerMixin. The
         # corresponding attribute needs a type hint.
@@ -436,7 +433,7 @@ class Runner:
             Runner: A runner build from ``cfg``.
         """
         cfg = copy.deepcopy(cfg)
-        runner = cls(
+        return cls(
             model=cfg['model'],
             work_dir=cfg['work_dir'],
             train_dataloader=cfg.get('train_dataloader'),
@@ -465,8 +462,6 @@ class Runner:
             experiment_name=cfg.get('experiment_name'),
             cfg=cfg,
         )
-
-        return runner
 
     @property
     def experiment_name(self):
@@ -506,18 +501,12 @@ class Runner:
     @property
     def epoch(self):
         """int: Current epoch."""
-        if isinstance(self.train_loop, BaseLoop):
-            return self.train_loop.epoch
-        else:
-            return 0
+        return self.train_loop.epoch if isinstance(self.train_loop, BaseLoop) else 0
 
     @property
     def iter(self):
         """int: Current iteration."""
-        if isinstance(self.train_loop, BaseLoop):
-            return self.train_loop.iter
-        else:
-            return 0
+        return self.train_loop.iter if isinstance(self.train_loop, BaseLoop) else 0
 
     @property
     def launcher(self):
@@ -562,29 +551,29 @@ class Runner:
     @property
     def train_loop(self):
         """:obj:`BaseLoop`: A loop to run training."""
-        if isinstance(self._train_loop, BaseLoop) or self._train_loop is None:
-            return self._train_loop
-        else:
+        if (
+            not isinstance(self._train_loop, BaseLoop)
+            and self._train_loop is not None
+        ):
             self._train_loop = self.build_train_loop(self._train_loop)
-            return self._train_loop
+        return self._train_loop
 
     @property
     def val_loop(self):
         """:obj:`BaseLoop`: A loop to run validation."""
-        if isinstance(self._val_loop, BaseLoop) or self._val_loop is None:
-            return self._val_loop
-        else:
+        if not isinstance(self._val_loop, BaseLoop) and self._val_loop is not None:
             self._val_loop = self.build_val_loop(self._val_loop)
-            return self._val_loop
+        return self._val_loop
 
     @property
     def test_loop(self):
         """:obj:`BaseLoop`: A loop to run testing."""
-        if isinstance(self._test_loop, BaseLoop) or self._test_loop is None:
-            return self._test_loop
-        else:
+        if (
+            not isinstance(self._test_loop, BaseLoop)
+            and self._test_loop is not None
+        ):
             self._test_loop = self.build_test_loop(self._test_loop)
-            return self._test_loop
+        return self._test_loop
 
     @property
     def train_dataloader(self):
@@ -880,7 +869,7 @@ class Runner:
         else:
             model_wrapper_type = MODEL_WRAPPERS.get(
                 model_wrapper_cfg.get('type'))  # type: ignore
-            default_args: dict = dict()
+            default_args: dict = {}
             if issubclass(
                     model_wrapper_type,  # type: ignore
                     DistributedDataParallel):
@@ -1073,41 +1062,36 @@ class Runner:
         """  # noqa: E501
         if isinstance(optim_wrapper, OptimWrapper):
             return optim_wrapper
-        if isinstance(optim_wrapper, (dict, ConfigDict, Config)):
-            # optimizer must be defined for single optimizer training.
-            optimizer = optim_wrapper.get('optimizer', None)
-
-            # If optimizer is a built `Optimizer` instance, the optimizer
-            # wrapper should be built by `OPTIM_WRAPPERS` registry.
-            if isinstance(optimizer, Optimizer):
-                optim_wrapper.setdefault('type', 'OptimWrapper')
-                return OPTIM_WRAPPERS.build(optim_wrapper)  # type: ignore
-
-            # If `optimizer` is not None or `constructor` is defined, it means,
-            # optimizer wrapper will be built by optimizer wrapper
-            # constructor. Therefore, `build_optim_wrapper` should be called.
-            if optimizer is not None or 'constructor' in optim_wrapper:
-                return build_optim_wrapper(self.model, optim_wrapper)
-            else:
-                # if `optimizer` is not defined, it should be the case of
-                # training with multiple optimizers. If `constructor` is not
-                # defined either, each value of `optim_wrapper` must be an
-                # `OptimWrapper` instance since `DefaultOptimizerConstructor`
-                # will not handle the case of training with multiple
-                # optimizers. `build_optim_wrapper` will directly build the
-                # `OptimWrapperDict` instance from `optim_wrapper.`
-                optim_wrappers = OrderedDict()
-                for name, optim in optim_wrapper.items():
-                    if not isinstance(optim, OptimWrapper):
-                        raise ValueError(
-                            'each item mush be an optimizer object when '
-                            '"type" and "constructor" are not in '
-                            f'optimizer, but got {name}={optim}')
-                    optim_wrappers[name] = optim
-                return OptimWrapperDict(**optim_wrappers)
-        else:
+        if not isinstance(optim_wrapper, (dict, ConfigDict, Config)):
             raise TypeError('optimizer wrapper should be an OptimWrapper '
                             f'object or dict, but got {optim_wrapper}')
+        # optimizer must be defined for single optimizer training.
+        optimizer = optim_wrapper.get('optimizer', None)
+
+        # If optimizer is a built `Optimizer` instance, the optimizer
+        # wrapper should be built by `OPTIM_WRAPPERS` registry.
+        if isinstance(optimizer, Optimizer):
+            optim_wrapper.setdefault('type', 'OptimWrapper')
+            return OPTIM_WRAPPERS.build(optim_wrapper)  # type: ignore
+
+        if optimizer is not None or 'constructor' in optim_wrapper:
+            return build_optim_wrapper(self.model, optim_wrapper)
+        # if `optimizer` is not defined, it should be the case of
+        # training with multiple optimizers. If `constructor` is not
+        # defined either, each value of `optim_wrapper` must be an
+        # `OptimWrapper` instance since `DefaultOptimizerConstructor`
+        # will not handle the case of training with multiple
+        # optimizers. `build_optim_wrapper` will directly build the
+        # `OptimWrapperDict` instance from `optim_wrapper.`
+        optim_wrappers = OrderedDict()
+        for name, optim in optim_wrapper.items():
+            if not isinstance(optim, OptimWrapper):
+                raise ValueError(
+                    'each item mush be an optimizer object when '
+                    '"type" and "constructor" are not in '
+                    f'optimizer, but got {name}={optim}')
+            optim_wrappers[name] = optim
+        return OptimWrapperDict(**optim_wrappers)
 
     def _build_param_scheduler(
             self, scheduler: Union[_ParamScheduler, Dict, List],
@@ -1130,11 +1114,7 @@ class Runner:
             of schedulers, and supports converting epoch-based schedulers
             to iter-based according to the ``convert_to_iter_based`` key.
         """
-        if not isinstance(scheduler, Sequence):
-            schedulers = [scheduler]
-        else:
-            schedulers = scheduler
-
+        schedulers = [scheduler] if not isinstance(scheduler, Sequence) else scheduler
         param_schedulers = []
         for scheduler in schedulers:
             if isinstance(scheduler, _ParamScheduler):
@@ -1224,33 +1204,24 @@ class Runner:
            https://mmengine.readthedocs.io/en/latest/tutorials/optim_wrapper.html
         """
         param_schedulers: ParamSchedulerType
-        if not isinstance(self.optim_wrapper, OptimWrapperDict):
-            # Since `OptimWrapperDict` inherits from `OptimWrapper`,
-            # `isinstance(self.optim_wrapper, OptimWrapper)` cannot tell
-            # whether `self.optim_wrapper` is an `OptimizerWrapper` or
-            # `OptimWrapperDict` instance. Therefore, here we simply check
-            # self.optim_wrapper is not an `OptimWrapperDict` instance and
-            # then assert it is an OptimWrapper instance.
-            assert isinstance(self.optim_wrapper, OptimWrapper), (
-                '`build_optimizer` should be called before'
-                '`build_param_scheduler` because the latter depends '
-                'on the former')
-            param_schedulers = self._build_param_scheduler(
-                scheduler, self.optim_wrapper)  # type: ignore
-            return param_schedulers
-        else:
-            param_schedulers = dict()
-            for name, optimizer in self.optim_wrapper.items():
-                if isinstance(scheduler, dict) and 'type' not in scheduler:
-                    # scheduler is a dict and each item is a ParamScheduler
-                    # object or a config to build ParamScheduler objects
-                    param_schedulers[name] = self._build_param_scheduler(
-                        scheduler[name], optimizer)
-                else:
-                    param_schedulers[name] = self._build_param_scheduler(
-                        scheduler, optimizer)
-
-            return param_schedulers
+        if isinstance(self.optim_wrapper, OptimWrapperDict):
+            return {
+                name: self._build_param_scheduler(scheduler[name], optimizer)
+                if isinstance(scheduler, dict) and 'type' not in scheduler
+                else self._build_param_scheduler(scheduler, optimizer)
+                for name, optimizer in self.optim_wrapper.items()
+            }
+        # Since `OptimWrapperDict` inherits from `OptimWrapper`,
+        # `isinstance(self.optim_wrapper, OptimWrapper)` cannot tell
+        # whether `self.optim_wrapper` is an `OptimizerWrapper` or
+        # `OptimWrapperDict` instance. Therefore, here we simply check
+        # self.optim_wrapper is not an `OptimWrapperDict` instance and
+        # then assert it is an OptimWrapper instance.
+        assert isinstance(self.optim_wrapper, OptimWrapper), (
+            '`build_optimizer` should be called before'
+            '`build_param_scheduler` because the latter depends '
+            'on the former')
+        return self._build_param_scheduler(scheduler, self.optim_wrapper)
 
     def build_evaluator(self, evaluator: Union[Dict, List,
                                                Evaluator]) -> Evaluator:
@@ -1388,22 +1359,21 @@ class Runner:
             assert callable(worker_init_fn)
             init_fn = partial(worker_init_fn,
                               **worker_init_fn_cfg)  # type: ignore
-        else:
-            if seed is not None:
-                disable_subprocess_warning = dataloader_cfg.pop(
-                    'disable_subprocess_warning', False)
-                assert isinstance(disable_subprocess_warning, bool), (
-                    'disable_subprocess_warning should be a bool, but got '
-                    f'{type(disable_subprocess_warning)}')
-                init_fn = partial(
-                    default_worker_init_fn,
-                    num_workers=dataloader_cfg.get('num_workers'),
-                    rank=get_rank(),
-                    seed=seed,
-                    disable_subprocess_warning=disable_subprocess_warning)
-            else:
-                init_fn = None
+        elif seed is None:
+            init_fn = None
 
+        else:
+            disable_subprocess_warning = dataloader_cfg.pop(
+                'disable_subprocess_warning', False)
+            assert isinstance(disable_subprocess_warning, bool), (
+                'disable_subprocess_warning should be a bool, but got '
+                f'{type(disable_subprocess_warning)}')
+            init_fn = partial(
+                default_worker_init_fn,
+                num_workers=dataloader_cfg.get('num_workers'),
+                rank=get_rank(),
+                seed=seed,
+                disable_subprocess_warning=disable_subprocess_warning)
         # `persistent_workers` requires pytorch version >= 1.7
         if ('persistent_workers' in dataloader_cfg
                 and digit_version(TORCH_VERSION) < digit_version('1.7.0')):
@@ -1424,14 +1394,14 @@ class Runner:
         collate_fn_type = collate_fn_cfg.pop('type')
         collate_fn = FUNCTIONS.get(collate_fn_type)
         collate_fn = partial(collate_fn, **collate_fn_cfg)  # type: ignore
-        data_loader = DataLoader(
+        return DataLoader(
             dataset=dataset,
             sampler=sampler if batch_sampler is None else None,
             batch_sampler=batch_sampler,
             collate_fn=collate_fn,
             worker_init_fn=init_fn,
-            **dataloader_cfg)
-        return data_loader
+            **dataloader_cfg
+        )
 
     def build_train_loop(self, loop: Union[BaseLoop, Dict]) -> BaseLoop:
         """Build training loop.
@@ -1472,14 +1442,12 @@ class Runner:
                 loop_cfg,
                 default_args=dict(
                     runner=self, dataloader=self._train_dataloader))
+        elif by_epoch := loop_cfg.pop('by_epoch'):
+            loop = EpochBasedTrainLoop(
+                **loop_cfg, runner=self, dataloader=self._train_dataloader)
         else:
-            by_epoch = loop_cfg.pop('by_epoch')
-            if by_epoch:
-                loop = EpochBasedTrainLoop(
-                    **loop_cfg, runner=self, dataloader=self._train_dataloader)
-            else:
-                loop = IterBasedTrainLoop(
-                    **loop_cfg, runner=self, dataloader=self._train_dataloader)
+            loop = IterBasedTrainLoop(
+                **loop_cfg, runner=self, dataloader=self._train_dataloader)
         return loop  # type: ignore
 
     def build_val_loop(self, loop: Union[BaseLoop, Dict]) -> BaseLoop:
@@ -1634,14 +1602,15 @@ class Runner:
 
         # decide to load from checkpoint or resume from checkpoint
         resume_from = None
-        if self._resume and self._load_from is None:
-            # auto resume from the latest checkpoint
-            resume_from = find_latest_checkpoint(self.work_dir)
-            self.logger.info(
-                f'Auto resumed from the latest checkpoint {resume_from}.')
-        elif self._resume and self._load_from is not None:
-            # resume from the specified checkpoint
-            resume_from = self._load_from
+        if self._resume:
+            if self._load_from is None:
+                # auto resume from the latest checkpoint
+                resume_from = find_latest_checkpoint(self.work_dir)
+                self.logger.info(
+                    f'Auto resumed from the latest checkpoint {resume_from}.')
+            else:
+                # resume from the specified checkpoint
+                resume_from = self._load_from
 
         if resume_from is not None:
             self.resume(resume_from)
@@ -1656,10 +1625,7 @@ class Runner:
         Returns:
             nn.Module: The model after training.
         """
-        if is_model_wrapper(self.model):
-            ori_model = self.model.module
-        else:
-            ori_model = self.model
+        ori_model = self.model.module if is_model_wrapper(self.model) else self.model
         assert hasattr(ori_model, 'train_step'), (
             'If you want to train your model, please make sure your model '
             'has implemented `train_step`.')
@@ -2060,11 +2026,7 @@ class Runner:
         # Add comments to describe the usage of `after_load_ckpt`
         self.call_hook('after_load_checkpoint', checkpoint=checkpoint)
 
-        if is_model_wrapper(self.model):
-            model = self.model.module
-        else:
-            model = self.model
-
+        model = self.model.module if is_model_wrapper(self.model) else self.model
         checkpoint = _load_checkpoint_to_model(
             model, checkpoint, strict, revise_keys=revise_keys)
 

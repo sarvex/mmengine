@@ -71,10 +71,7 @@ class DefaultScope(ManagerMixin):
             latest created DefaultScope instance.
         """
         _accquire_lock()
-        if cls._instance_dict:
-            instance = super().get_current_instance()
-        else:
-            instance = None
+        instance = super().get_current_instance() if cls._instance_dict else None
         _release_lock()
         return instance
 

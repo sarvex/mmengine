@@ -111,8 +111,7 @@ def check_time(timer_id):
     Args:
         str: Timer identifier.
     """
-    if timer_id not in _g_timers:
-        _g_timers[timer_id] = Timer()
-        return 0
-    else:
+    if timer_id in _g_timers:
         return _g_timers[timer_id].since_last_check()
+    _g_timers[timer_id] = Timer()
+    return 0

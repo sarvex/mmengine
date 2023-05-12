@@ -93,7 +93,7 @@ except ImportError:
                 if not entry.name.startswith('.') and entry.is_file():
                     yield entry.name
                 elif osp.isdir(entry.path):
-                    yield entry.name + '/'
+                    yield f'{entry.name}/'
 
     @contextmanager
     def delete_and_reset_method(obj, method):

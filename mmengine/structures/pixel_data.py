@@ -55,7 +55,7 @@ class PixelData(BaseDataElement):
                 The type of value must be `torch.Tensor` or `np.ndarray`,
                 and its shape must meet the requirements of `PixelData`.
         """
-        if name in ('_metainfo_fields', '_data_fields'):
+        if name in {'_metainfo_fields', '_data_fields'}:
             if not hasattr(self, name):
                 super().__setattr__(name, value)
             else:
@@ -64,8 +64,8 @@ class PixelData(BaseDataElement):
 
         else:
             assert isinstance(value, (torch.Tensor, np.ndarray)), \
-                f'Can not set {type(value)}, only support' \
-                f' {(torch.Tensor, np.ndarray)}'
+                    f'Can not set {type(value)}, only support' \
+                    f' {(torch.Tensor, np.ndarray)}'
 
             if self.shape:
                 assert tuple(value.shape[-2:]) == self.shape, (
@@ -96,27 +96,25 @@ class PixelData(BaseDataElement):
         """
 
         new_data = self.__class__(metainfo=self.metainfo)
-        if isinstance(item, tuple):
-
-            assert len(item) == 2, 'Only support to slice height and width'
-            tmp_item: List[slice] = list()
-            for index, single_item in enumerate(item[::-1]):
-                if isinstance(single_item, int):
-                    tmp_item.insert(
-                        0, slice(single_item, None, self.shape[-index - 1]))
-                elif isinstance(single_item, slice):
-                    tmp_item.insert(0, single_item)
-                else:
-                    raise TypeError(
-                        'The type of element in input must be int or slice, '
-                        f'but got {type(single_item)}')
-            tmp_item.insert(0, slice(None, None, None))
-            item = tuple(tmp_item)
-            for k, v in self.items():
-                setattr(new_data, k, v[item])
-        else:
+        if not isinstance(item, tuple):
             raise TypeError(
                 f'Unsupported type {type(item)} for slicing PixelData')
+        assert len(item) == 2, 'Only support to slice height and width'
+        tmp_item: List[slice] = []
+        for index, single_item in enumerate(item[::-1]):
+            if isinstance(single_item, int):
+                tmp_item.insert(
+                    0, slice(single_item, None, self.shape[-index - 1]))
+            elif isinstance(single_item, slice):
+                tmp_item.insert(0, single_item)
+            else:
+                raise TypeError(
+                    'The type of element in input must be int or slice, '
+                    f'but got {type(single_item)}')
+        tmp_item.insert(0, slice(None, None, None))
+        item = tuple(tmp_item)
+        for k, v in self.items():
+            setattr(new_data, k, v[item])
         return new_data
 
     @property

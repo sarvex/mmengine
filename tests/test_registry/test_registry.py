@@ -169,18 +169,8 @@ class TestRegistry:
 
     def _build_registry(self):
         """A helper function to build a Hierarchical Registry."""
-        #        Hierarchical Registry
-        #                           DOGS
-        #                      _______|_______
-        #                     |               |
-        #            HOUNDS (hound)          SAMOYEDS (samoyed)
-        #           _______|_______                |
-        #          |               |               |
-        #     LITTLE_HOUNDS    MID_HOUNDS   LITTLE_SAMOYEDS
-        #     (little_hound)   (mid_hound)  (little_samoyed)
-        registries = []
         DOGS = Registry('dogs')
-        registries.append(DOGS)
+        registries = [DOGS]
         HOUNDS = Registry('hounds', parent=DOGS, scope='hound')
         registries.append(HOUNDS)
         LITTLE_HOUNDS = Registry(

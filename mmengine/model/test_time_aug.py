@@ -135,9 +135,7 @@ class BaseTTAModel(BaseModel):
             raise TypeError('data given by dataLoader should be a dict, '
                             f'tuple or a list, but got {type(data)}')
 
-        predictions = []
-        for data in data_list:  # type: ignore
-            predictions.append(self.module.test_step(data))
+        predictions = [self.module.test_step(data) for data in data_list]
         return self.merge_preds(list(zip(*predictions)))  # type: ignore
 
     def forward(self,

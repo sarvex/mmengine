@@ -134,7 +134,7 @@ class LogProcessor:
             Tuple(dict, str): Formatted log dict/string which will be
             recorded by :obj:`runner.message_hub` and :obj:`runner.visualizer`.
         """
-        assert mode in ['train', 'test', 'val']
+        assert mode in {'train', 'test', 'val'}
         cur_iter = self._get_iter(runner, batch_idx=batch_idx)
         # Overwrite ``window_size`` defined in ``custom_cfg`` to int value.
         parsed_cfg = self._parse_windows_size(runner, batch_idx,
@@ -174,7 +174,7 @@ class LogProcessor:
             dataloader_len = self._get_dataloader_size(runner, mode)
             cur_iter_str = str(cur_iter).rjust(len(str(dataloader_len)))
 
-            if mode in ['train', 'val']:
+            if mode in {'train', 'val'}:
                 # Right Align the epoch log:
                 # Epoch(train)   [9][100/270]
                 # ...             ||
@@ -191,16 +191,15 @@ class LogProcessor:
             else:
                 log_str = (f'Epoch({mode}) '
                            f'[{cur_iter_str}/{dataloader_len}]  ')
+        elif mode == 'train':
+            cur_iter_str = str(cur_iter).rjust(len(str(runner.max_iters)))
+            log_str = (f'Iter({mode}) '
+                       f'[{cur_iter_str}/{runner.max_iters}]  ')
         else:
-            if mode == 'train':
-                cur_iter_str = str(cur_iter).rjust(len(str(runner.max_iters)))
-                log_str = (f'Iter({mode}) '
-                           f'[{cur_iter_str}/{runner.max_iters}]  ')
-            else:
-                dataloader_len = self._get_dataloader_size(runner, mode)
-                cur_iter_str = str(batch_idx + 1).rjust(
-                    len(str(dataloader_len)))
-                log_str = (f'Iter({mode}) [{cur_iter_str}/{dataloader_len}]  ')
+            dataloader_len = self._get_dataloader_size(runner, mode)
+            cur_iter_str = str(batch_idx + 1).rjust(
+                len(str(dataloader_len)))
+            log_str = (f'Iter({mode}) [{cur_iter_str}/{dataloader_len}]  ')
         # Concatenate lr, momentum string with log header.
         log_str += f'{lr_str}  '
         # If IterTimerHook used in runner, eta, time, and data_time should be
@@ -223,7 +222,7 @@ class LogProcessor:
             log_str += f'memory: {max_memory}  '
             tag['memory'] = max_memory
         # Loop left keys to fill `log_str`.
-        if mode in ('train', 'val'):
+        if mode in {'train', 'val'}:
             log_items = []
             for name, val in log_tag.items():
                 if mode == 'val' and not name.startswith('val/loss'):
@@ -253,10 +252,10 @@ class LogProcessor:
             Tuple(dict, str): Formatted log dict/string which will be
             recorded by :obj:`runner.message_hub` and :obj:`runner.visualizer`.
         """
-        assert mode in [
-            'test', 'val'
-        ], ('`_get_metric_log_str` only accept val or test mode, but got '
-            f'{mode}')
+        assert mode in {
+            'test',
+            'val',
+        }, f'`_get_metric_log_str` only accept val or test mode, but got {mode}'
         dataloader_len = self._get_dataloader_size(runner, mode)
 
         # By epoch:
@@ -408,10 +407,7 @@ class LogProcessor:
 
     def _remove_prefix(self, string: str, prefix: str):
         """Remove the prefix ``train``, ``val`` and ``test`` of the key."""
-        if string.startswith(prefix):
-            return string[len(prefix):]
-        else:
-            return string
+        return string[len(prefix):] if string.startswith(prefix) else string
 
     def _check_custom_cfg(self) -> None:
         """Check the legality of ``self.custom_cfg``."""
@@ -504,11 +500,11 @@ class LogProcessor:
         Returns:
             int: The current global iter or inner iter.
         """
-        if self.by_epoch and batch_idx is not None:
-            current_iter = batch_idx + 1
-        else:
-            current_iter = runner.iter + 1
-        return current_iter
+        return (
+            batch_idx + 1
+            if self.by_epoch and batch_idx is not None
+            else runner.iter + 1
+        )
 
     def _get_epoch(self, runner, mode: str) -> int:
         """Get current epoch according to mode.

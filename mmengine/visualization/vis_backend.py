@@ -785,7 +785,7 @@ class MLflowVisBackend(BaseVisBackend):
 
     def close(self) -> None:
         """Close the mlflow."""
-        file_paths = dict()
+        file_paths = {}
         for filename in scandir(self.cfg.work_dir, self._artifact_suffix,
                                 True):
             file_path = osp.join(self.cfg.work_dir, filename)
@@ -801,11 +801,11 @@ class MLflowVisBackend(BaseVisBackend):
 
     def _flatten(self, d, parent_key='', sep='.') -> dict:
         """Flatten the dict."""
-        items = dict()
+        items = {}
         for k, v in d.items():
             new_key = parent_key + sep + k if parent_key else k
             if isinstance(v, MutableMapping):
-                items.update(self._flatten(v, new_key, sep=sep))
+                items |= self._flatten(v, new_key, sep=sep)
             elif isinstance(v, list):
                 if any(isinstance(x, dict) for x in v):
                     for i, x in enumerate(v):

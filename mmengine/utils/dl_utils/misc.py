@@ -90,10 +90,7 @@ def has_batch_norm(model: nn.Module) -> bool:
     """
     if isinstance(model, _BatchNorm):
         return True
-    for m in model.children():
-        if has_batch_norm(m):
-            return True
-    return False
+    return any(has_batch_norm(m) for m in model.children())
 
 
 def mmcv_full_available() -> bool:

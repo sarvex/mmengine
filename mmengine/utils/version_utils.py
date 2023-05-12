@@ -27,10 +27,10 @@ def digit_version(version_str: str, length: int = 4):
     if len(release) < length:
         release = release + [0] * (length - len(release))
     if version.is_prerelease:
-        mapping = {'a': -3, 'b': -2, 'rc': -1}
         val = -4
         # version.pre can be None
         if version.pre:
+            mapping = {'a': -3, 'b': -2, 'rc': -1}
             if version.pre[0] not in mapping:
                 warnings.warn(f'unknown prerelease version {version.pre[0]}, '
                               'version checking may go wrong')

@@ -185,7 +185,7 @@ class TestBaseInferencer(RunnerTestCase):
         self.assertEqual(vis_arg, dict(vis_arg=dict(b=3)))
         self.assertEqual(pos_arg, dict(pos_arg=dict(d=4)))
         # Test unknown arg.
-        kwargs = dict(return_datasample=dict())
+        kwargs = dict(return_datasample={})
         with self.assertRaisesRegex(ValueError, 'unknown'):
             inferencer._dispatch_kwargs(**kwargs)
 

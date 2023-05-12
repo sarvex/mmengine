@@ -93,8 +93,7 @@ class BaseDataPreprocessor(nn.Module):
         # directly will cause the NPU to not be found.
         # Here, the input parameters are processed to avoid errors.
         if args and isinstance(args[0], str) and 'npu' in args[0]:
-            args = tuple(
-                [list(args)[0].replace('npu', torch.npu.native_device)])
+            args = (list(args)[0].replace('npu', torch.npu.native_device), )
         if kwargs and 'npu' in str(kwargs.get('device', '')):
             kwargs['device'] = kwargs['device'].replace(
                 'npu', torch.npu.native_device)
@@ -208,12 +207,14 @@ class ImgDataPreprocessor(BaseDataPreprocessor):
         assert (mean is None) == (std is None), (
             'mean and std should be both None or tuple')
         if mean is not None:
-            assert len(mean) == 3 or len(mean) == 1, (
-                '`mean` should have 1 or 3 values, to be compatible with '
-                f'RGB or gray image, but got {len(mean)} values')
-            assert len(std) == 3 or len(std) == 1, (  # type: ignore
-                '`std` should have 1 or 3 values, to be compatible with RGB '  # type: ignore # noqa: E501
-                f'or gray image, but got {len(std)} values')  # type: ignore
+            assert len(mean) in {
+                3,
+                1,
+            }, f'`mean` should have 1 or 3 values, to be compatible with RGB or gray image, but got {len(mean)} values'
+            assert len(std) in {
+                3,
+                1,
+            }, f'`std` should have 1 or 3 values, to be compatible with RGB or gray image, but got {len(std)} values'
             self._enable_normalize = True
             self.register_buffer('mean',
                                  torch.tensor(mean).view(-1, 1, 1), False)

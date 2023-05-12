@@ -356,9 +356,9 @@ class OptimWrapper:
         for param_group in self.optimizer.param_groups:
             params.extend(param_group['params'])
 
-        params = list(
-            filter(lambda p: p.requires_grad and p.grad is not None, params))
-        if len(params) > 0:
+        if params := list(
+            filter(lambda p: p.requires_grad and p.grad is not None, params)
+        ):
             grad = self.clip_func(params, **self.clip_grad_kwargs)
             # `torch.nn.utils.clip_grad_value_` will return None.
             if grad is not None:

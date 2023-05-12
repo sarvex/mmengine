@@ -68,17 +68,14 @@ def _parse_uri_prefix(uri: Union[str, Path]) -> str:
     """
     assert is_filepath(uri)
     uri = str(uri)
-    # if uri does not contains '://', the uri will be handled by
-    # LocalBackend by default
     if '://' not in uri:
         return ''
-    else:
-        prefix, _ = uri.split('://')
-        # In the case of PetrelBackend, the prefix may contain the cluster
-        # name like clusterName:s3://path/of/your/file
-        if ':' in prefix:
-            _, prefix = prefix.split(':')
-        return prefix
+    prefix, _ = uri.split('://')
+    # In the case of PetrelBackend, the prefix may contain the cluster
+    # name like clusterName:s3://path/of/your/file
+    if ':' in prefix:
+        _, prefix = prefix.split(':')
+    return prefix
 
 
 def _get_file_backend(prefix: str, backend_args: dict):
@@ -89,15 +86,12 @@ def _get_file_backend(prefix: str, backend_args: dict):
         backend_args (dict): Arguments to instantiate the corresponding
             backend.
     """
-    # backend name has a higher priority
-    if 'backend' in backend_args:
-        # backend_args should not be modified
-        backend_args_bak = backend_args.copy()
-        backend_name = backend_args_bak.pop('backend')
-        backend = backends[backend_name](**backend_args_bak)
-    else:
-        backend = prefix_to_backends[prefix](**backend_args)
-    return backend
+    if 'backend' not in backend_args:
+        return prefix_to_backends[prefix](**backend_args)
+    # backend_args should not be modified
+    backend_args_bak = backend_args.copy()
+    backend_name = backend_args_bak.pop('backend')
+    return backends[backend_name](**backend_args_bak)
 
 
 def get_file_backend(
@@ -138,11 +132,7 @@ def get_file_backend(
             'uri should not be None when "backend" does not exist in '
             'backend_args')
 
-    if uri is not None:
-        prefix = _parse_uri_prefix(uri)
-    else:
-        prefix = ''
-
+    prefix = _parse_uri_prefix(uri) if uri is not None else ''
     if enable_singleton:
         # TODO: whether to pass sort_key to json.dumps
         unique_key = f'{prefix}:{json.dumps(backend_args)}'
@@ -151,10 +141,10 @@ def get_file_backend(
 
         backend = _get_file_backend(prefix, backend_args)
         backend_instances[unique_key] = backend
-        return backend
     else:
         backend = _get_file_backend(prefix, backend_args)
-        return backend
+
+    return backend
 
 
 def get(

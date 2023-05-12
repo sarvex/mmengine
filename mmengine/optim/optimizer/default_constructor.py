@@ -147,11 +147,12 @@ class DefaultOptimWrapperConstructor:
 
         # get base lr and weight decay
         # weight_decay must be explicitly specified if mult is specified
-        if ('bias_decay_mult' in self.paramwise_cfg
-                or 'norm_decay_mult' in self.paramwise_cfg
-                or 'dwconv_decay_mult' in self.paramwise_cfg):
-            if self.base_wd is None:
-                raise ValueError('base_wd should not be None')
+        if (
+            'bias_decay_mult' in self.paramwise_cfg
+            or 'norm_decay_mult' in self.paramwise_cfg
+            or 'dwconv_decay_mult' in self.paramwise_cfg
+        ) and self.base_wd is None:
+            raise ValueError('base_wd should not be None')
 
     def _is_in(self, param_group: dict, param_group_list: list) -> bool:
         """check whether the `param_group` is in the`param_group_list`"""
@@ -195,13 +196,13 @@ class DefaultOptimWrapperConstructor:
         bypass_duplicate = self.paramwise_cfg.get('bypass_duplicate', False)
         dcn_offset_lr_mult = self.paramwise_cfg.get('dcn_offset_lr_mult', None)
 
-        # special rules for norm layers and depth-wise conv layers
-        is_norm = isinstance(module,
-                             (_BatchNorm, _InstanceNorm, GroupNorm, LayerNorm))
         is_dwconv = (
             isinstance(module, torch.nn.Conv2d)
             and module.in_channels == module.groups)
 
+        is_norm = isinstance(
+            module, (_BatchNorm, _InstanceNorm, GroupNorm, LayerNorm)
+        )
         for name, param in module.named_parameters(recurse=False):
             param_group = {'params': [param]}
             if bypass_duplicate and self._is_in(param_group, params):
@@ -233,13 +234,20 @@ class DefaultOptimWrapperConstructor:
             if not is_custom:
                 # bias_lr_mult affects all bias parameters
                 # except for norm.bias dcn.conv_offset.bias
-                if name == 'bias' and not (
-                        is_norm or is_dcn_module) and bias_lr_mult is not None:
+                if (
+                    name == 'bias'
+                    and not is_norm
+                    and not is_dcn_module
+                    and bias_lr_mult is not None
+                ):
                     param_group['lr'] = self.base_lr * bias_lr_mult
 
-                if (prefix.find('conv_offset') != -1 and is_dcn_module
-                        and dcn_offset_lr_mult is not None
-                        and isinstance(module, torch.nn.Conv2d)):
+                if (
+                    'conv_offset' in prefix
+                    and is_dcn_module
+                    and dcn_offset_lr_mult is not None
+                    and isinstance(module, torch.nn.Conv2d)
+                ):
                     # deal with both dcn_offset's bias & weight
                     param_group['lr'] = self.base_lr * dcn_offset_lr_mult
 
@@ -296,13 +304,12 @@ class DefaultOptimWrapperConstructor:
         # if no paramwise option is specified, just use the global setting
         if not self.paramwise_cfg:
             optimizer_cfg['params'] = model.parameters()
-            optimizer = OPTIMIZERS.build(optimizer_cfg)
         else:
             # set param-wise lr and weight decay recursively
             params: List = []
             self.add_params(params, model)
             optimizer_cfg['params'] = params
-            optimizer = OPTIMIZERS.build(optimizer_cfg)
-        optim_wrapper = OPTIM_WRAPPERS.build(
-            optim_wrapper_cfg, default_args=dict(optimizer=optimizer))
-        return optim_wrapper
+        optimizer = OPTIMIZERS.build(optimizer_cfg)
+        return OPTIM_WRAPPERS.build(
+            optim_wrapper_cfg, default_args=dict(optimizer=optimizer)
+        )

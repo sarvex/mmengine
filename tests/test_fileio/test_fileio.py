@@ -47,8 +47,9 @@ def _test_handler(file_format, test_obj, str_checker, mode='r+'):
     os.remove(tmp_filename)
 
     # automatically inference the file format from the given filename
-    tmp_filename = osp.join(tempfile.gettempdir(),
-                            'mmengine_test_dump.' + file_format)
+    tmp_filename = osp.join(
+        tempfile.gettempdir(), f'mmengine_test_dump.{file_format}'
+    )
     mmengine.dump(test_obj, tmp_filename)
     assert osp.isfile(tmp_filename)
     load_obj = mmengine.load(tmp_filename)

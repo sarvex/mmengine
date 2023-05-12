@@ -65,11 +65,10 @@ def check_length(name: str, value: Any, valid_length: int) -> None:
         value (Any): value.
         valid_length (int): expected length.
     """
-    if isinstance(value, list):
-        if len(value) < valid_length:
-            raise AssertionError(
-                f'The length of {name} must equal with or '
-                f'greater than {valid_length}, but got {len(value)}')
+    if isinstance(value, list) and len(value) < valid_length:
+        raise AssertionError(
+            f'The length of {name} must equal with or '
+            f'greater than {valid_length}, but got {len(value)}')
 
 
 def check_type_and_length(name: str, value: Any,

@@ -313,7 +313,7 @@ class BaseDataElement:
         # private keys.
         # TODO: Use a more robust way to solve this problem
         private_keys = {
-            '_' + key
+            f'_{key}'
             for key in self._data_fields
             if isinstance(getattr(type(self), key, None), property)
         }
@@ -388,7 +388,7 @@ class BaseDataElement:
 
     def __setattr__(self, name: str, value: Any):
         """setattr is only used to set data."""
-        if name in ('_metainfo_fields', '_data_fields'):
+        if name in {'_metainfo_fields', '_data_fields'}:
             if not hasattr(self, name):
                 super().__setattr__(name, value)
             else:
@@ -404,7 +404,7 @@ class BaseDataElement:
         Args:
             item (str): The key to delete.
         """
-        if item in ('_metainfo_fields', '_data_fields'):
+        if item in {'_metainfo_fields', '_data_fields'}:
             raise AttributeError(f'{item} has been used as a '
                                  'private attribute, which is immutable.')
         super().__delattr__(item)
@@ -457,7 +457,7 @@ class BaseDataElement:
                   field_type: str = 'data') -> None:
         """Special method for set union field, used as property.setter
         functions."""
-        assert field_type in ['metainfo', 'data']
+        assert field_type in {'metainfo', 'data'}
         if dtype is not None:
             assert isinstance(
                 value,
@@ -469,11 +469,11 @@ class BaseDataElement:
                     f'Cannot set {name} to be a field of metainfo '
                     f'because {name} is already a data field')
             self._metainfo_fields.add(name)
+        elif name in self._metainfo_fields:
+            raise AttributeError(
+                f'Cannot set {name} to be a field of data '
+                f'because {name} is already a metainfo field')
         else:
-            if name in self._metainfo_fields:
-                raise AttributeError(
-                    f'Cannot set {name} to be a field of data '
-                    f'because {name} is already a metainfo field')
             self._data_fields.add(name)
         super().__setattr__(name, value)
 

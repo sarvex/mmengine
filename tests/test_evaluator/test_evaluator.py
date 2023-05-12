@@ -56,12 +56,10 @@ class ToyMetric(BaseMetric):
         label = np.array([result['label'] for result in results])
         acc = (pred == label).sum() / pred.size
 
-        metrics = {
+        return {
             'accuracy': acc,
             'size': pred.size,  # To check the number of testing samples
         }
-
-        return metrics
 
 
 @METRICS.register_module()
@@ -237,7 +235,7 @@ class TestEvaluator(TestCase):
 
         size = 10
 
-        all_data = [dict() for _ in range(10)]
+        all_data = [{} for _ in range(10)]
         all_predictions = [
             BaseDataElement(pred=0, label=1) for _ in range(size)
         ]
@@ -248,7 +246,7 @@ class TestEvaluator(TestCase):
         evaluator.offline_evaluate(all_predictions, all_data)
 
         # Different length of data and predictions will raise an error.
-        all_data = [dict() for _ in range(9)]
+        all_data = [{} for _ in range(9)]
         with self.assertRaisesRegex(
                 AssertionError,
                 'data_samples and data should have the same length'):

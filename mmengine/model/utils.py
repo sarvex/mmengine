@@ -59,10 +59,10 @@ def stack_batch(tensor_list: List[torch.Tensor],
     # "bottom".
     pad = torch.zeros(num_img, 2 * dim, dtype=torch.int)
     pad[:, 1::2] = padded_sizes[:, range(dim - 1, -1, -1)]
-    batch_tensor = []
-    for idx, tensor in enumerate(tensor_list):
-        batch_tensor.append(
-            F.pad(tensor, tuple(pad[idx].tolist()), value=pad_value))
+    batch_tensor = [
+        F.pad(tensor, tuple(pad[idx].tolist()), value=pad_value)
+        for idx, tensor in enumerate(tensor_list)
+    ]
     return torch.stack(batch_tensor)
 
 
@@ -112,13 +112,13 @@ def merge_dict(*args):
     Returns:
         dict: Merged dict from args
     """
-    output = dict()
+    output = {}
     for item in args:
         assert isinstance(
             item,
             dict), (f'all arguments of merge_dict should be a dict, but got '
                     f'{type(item)}')
-        output.update(item)
+        output |= item
     return output
 
 

@@ -23,8 +23,7 @@ sys.modules['mc'] = MagicMock()
 
 def imfrombytes(content):
     img_np = np.frombuffer(content, np.uint8)
-    img = cv2.imdecode(img_np, cv2.IMREAD_COLOR)
-    return img
+    return cv2.imdecode(img_np, cv2.IMREAD_COLOR)
 
 
 @contextmanager
@@ -115,7 +114,7 @@ class MockPetrelClient:
             if not entry.name.startswith('.') and entry.is_file():
                 yield entry.name
             elif osp.isdir(entry.path):
-                yield entry.name + '/'
+                yield f'{entry.name}/'
 
 
 class MockMemcachedClient:

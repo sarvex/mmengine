@@ -183,10 +183,7 @@ class TestFlopAnalyzer(unittest.TestCase):
         trace = torch.jit.trace(lin, (lin_x, ))
         node_kinds = [node.kind() for node in trace.graph.nodes()]
         assert 'aten::addmm' in node_kinds or 'aten::linear' in node_kinds
-        if 'aten::addmm' in node_kinds:
-            self.lin_op = 'addmm'
-        else:
-            self.lin_op = 'linear'
+        self.lin_op = 'addmm' if 'aten::addmm' in node_kinds else 'linear'
 
     def test_customized_ops(self) -> None:
         """Test the use of customized operation handles.
@@ -324,18 +321,18 @@ class TestFlopAnalyzer(unittest.TestCase):
         """
 
         def _test_conv(
-            conv_dim: int,
-            batch_size: int,
-            input_dim: int,
-            output_dim: int,
-            spatial_dim: int,
-            kernel_size: int,
-            padding: int,
-            stride: int,
-            group_size: int,
-            transpose: bool = False,
-            output_padding: int = 0,
-        ) -> None:
+                conv_dim: int,
+                batch_size: int,
+                input_dim: int,
+                output_dim: int,
+                spatial_dim: int,
+                kernel_size: int,
+                padding: int,
+                stride: int,
+                group_size: int,
+                transpose: bool = False,
+                output_padding: int = 0,
+            ) -> None:
             convNet = ConvNet(
                 conv_dim,
                 input_dim,
@@ -347,9 +344,7 @@ class TestFlopAnalyzer(unittest.TestCase):
                 transpose,
                 output_padding,
             )
-            assert conv_dim in [
-                1, 2, 3
-            ], 'Convolution dimension needs to be 1, 2, or 3'
+            assert conv_dim in {1, 2, 3}, 'Convolution dimension needs to be 1, 2, or 3'
             if conv_dim == 1:
                 x = torch.randn(batch_size, input_dim, spatial_dim)
             elif conv_dim == 2:

@@ -111,7 +111,8 @@ def test_track_progress_list():
 def test_track_progress_iterator():
     out = StringIO()
     ret = mmengine.track_progress(
-        sleep_1s, ((i for i in [1, 2, 3]), 3), bar_width=3, file=out)
+        sleep_1s, (iter([1, 2, 3]), 3), bar_width=3, file=out
+    )
     assert out.getvalue() == (
         '[   ] 0/3, elapsed: 0s, ETA:'
         '\r[>  ] 1/3, 1.0 task/s, elapsed: 1s, ETA:     2s'
@@ -125,9 +126,12 @@ def test_track_progress_iterator():
     reason='Only test `test_track_iter_progress` in Linux')
 def test_track_iter_progress():
     out = StringIO()
-    ret = []
-    for num in mmengine.track_iter_progress([1, 2, 3], bar_width=3, file=out):
-        ret.append(sleep_1s(num))
+    ret = [
+        sleep_1s(num)
+        for num in mmengine.track_iter_progress(
+            [1, 2, 3], bar_width=3, file=out
+        )
+    ]
     assert out.getvalue() == (
         '[   ] 0/3, elapsed: 0s, ETA:'
         '\r[>  ] 1/3, 1.0 task/s, elapsed: 1s, ETA:     2s'
@@ -179,7 +183,8 @@ def test_track_parallel_progress_list():
 def test_track_parallel_progress_iterator():
     out = StringIO()
     results = mmengine.track_parallel_progress(
-        sleep_1s, ((i for i in [1, 2, 3, 4]), 4), 2, bar_width=4, file=out)
+        sleep_1s, (iter([1, 2, 3, 4]), 4), 2, bar_width=4, file=out
+    )
     # The following cannot pass CI on Github Action
     # assert out.getvalue() == (
     #     '[    ] 0/4, elapsed: 0s, ETA:'

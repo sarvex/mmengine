@@ -46,8 +46,7 @@ class NaiveVisualizationHook(Hook):
             np.ndarray: The image before padding.
         """
         unpad_width, unpad_height = unpad_shape
-        unpad_image = input[:unpad_height, :unpad_width]
-        return unpad_image
+        return input[:unpad_height, :unpad_width]
 
     def before_train(self, runner) -> None:
         """Call add_graph method of visualizer.

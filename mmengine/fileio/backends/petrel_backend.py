@@ -100,8 +100,7 @@ class PetrelBackend(BaseStorageBackend):
         filepath = self._map_path(filepath)
         filepath = self._format_path(filepath)
         filepath = self._replace_prefix(filepath)
-        value = self._client.Get(filepath)
-        return value
+        return self._client.Get(filepath)
 
     def get_text(
         self,
@@ -722,7 +721,7 @@ class PetrelBackend(BaseStorageBackend):
         root = dir_path
 
         def _list_dir_or_file(dir_path, list_dir, list_file, suffix,
-                              recursive):
+                                  recursive):
             for path in self._client.list(dir_path):
                 # the `self.isdir` is not used here to determine whether path
                 # is a directory, because `self.isdir` relies on
@@ -730,10 +729,7 @@ class PetrelBackend(BaseStorageBackend):
                 if path.endswith('/'):  # a directory path
                     next_dir_path = self.join_path(dir_path, path)
                     if list_dir:
-                        # get the relative path and exclude the last
-                        # character '/'
-                        rel_dir = next_dir_path[len(root):-1]
-                        yield rel_dir
+                        yield next_dir_path[len(root):-1]
                     if recursive:
                         yield from _list_dir_or_file(next_dir_path, list_dir,
                                                      list_file, suffix,

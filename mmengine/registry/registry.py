@@ -82,8 +82,8 @@ class Registry:
                  locations: List = []):
         from .build_functions import build_from_cfg
         self._name = name
-        self._module_dict: Dict[str, Type] = dict()
-        self._children: Dict[str, 'Registry'] = dict()
+        self._module_dict: Dict[str, Type] = {}
+        self._children: Dict[str, 'Registry'] = {}
         self._locations = locations
         self._imported = False
 
@@ -285,7 +285,7 @@ class Registry:
                 scope_name = default_scope.scope_name
                 try:
                     import_module(f'{scope_name}.registry')
-                except (ImportError, AttributeError, ModuleNotFoundError):
+                except (ImportError, AttributeError):
                     if scope in MODULE2PACKAGE:
                         print_log(
                             f'{scope} is not installed and its '
@@ -319,7 +319,6 @@ class Registry:
                         logger='current',
                         level=logging.WARNING)
                     registry = self
-            # If there is no built default scope, just return current registry.
             else:
                 registry = self
             yield registry
@@ -333,53 +332,54 @@ class Registry:
 
     def import_from_location(self) -> None:
         """import modules from the pre-defined locations in self._location."""
-        if not self._imported:
-            # Avoid circular import
-            from ..logging import print_log
+        if self._imported:
+            return
+        # Avoid circular import
+        from ..logging import print_log
 
             # avoid BC breaking
-            if len(self._locations) == 0 and self.scope in MODULE2PACKAGE:
-                print_log(
-                    f'The "{self.name}" registry in {self.scope} did not '
-                    'set import location. Fallback to call '
-                    f'`{self.scope}.utils.register_all_modules` '
-                    'instead.',
-                    logger='current',
-                    level=logging.DEBUG)
-                try:
-                    module = import_module(f'{self.scope}.utils')
-                except (ImportError, AttributeError, ModuleNotFoundError):
-                    if self.scope in MODULE2PACKAGE:
-                        print_log(
-                            f'{self.scope} is not installed and its '
-                            'modules will not be registered. If you '
-                            'want to use modules defined in '
-                            f'{self.scope}, Please install {self.scope} by '
-                            f'`pip install {MODULE2PACKAGE[self.scope]}.',
-                            logger='current',
-                            level=logging.WARNING)
-                    else:
-                        print_log(
-                            f'Failed to import {self.scope} and register '
-                            'its modules, please make sure you '
-                            'have registered the module manually.',
-                            logger='current',
-                            level=logging.WARNING)
+        if len(self._locations) == 0 and self.scope in MODULE2PACKAGE:
+            print_log(
+                f'The "{self.name}" registry in {self.scope} did not '
+                'set import location. Fallback to call '
+                f'`{self.scope}.utils.register_all_modules` '
+                'instead.',
+                logger='current',
+                level=logging.DEBUG)
+            try:
+                module = import_module(f'{self.scope}.utils')
+            except (ImportError, AttributeError):
+                if self.scope in MODULE2PACKAGE:
+                    print_log(
+                        f'{self.scope} is not installed and its '
+                        'modules will not be registered. If you '
+                        'want to use modules defined in '
+                        f'{self.scope}, Please install {self.scope} by '
+                        f'`pip install {MODULE2PACKAGE[self.scope]}.',
+                        logger='current',
+                        level=logging.WARNING)
                 else:
-                    # The import errors triggered during the registration
-                    # may be more complex, here just throwing
-                    # the error to avoid causing more implicit registry errors
-                    # like `xxx`` not found in `yyy` registry.
-                    module.register_all_modules(False)  # type: ignore
+                    print_log(
+                        f'Failed to import {self.scope} and register '
+                        'its modules, please make sure you '
+                        'have registered the module manually.',
+                        logger='current',
+                        level=logging.WARNING)
+            else:
+                # The import errors triggered during the registration
+                # may be more complex, here just throwing
+                # the error to avoid causing more implicit registry errors
+                # like `xxx`` not found in `yyy` registry.
+                module.register_all_modules(False)  # type: ignore
 
-            for loc in self._locations:
-                import_module(loc)
-                print_log(
-                    f"Modules of {self.scope}'s {self.name} registry have "
-                    f'been automatically imported from {loc}',
-                    logger='current',
-                    level=logging.DEBUG)
-            self._imported = True
+        for loc in self._locations:
+            import_module(loc)
+            print_log(
+                f"Modules of {self.scope}'s {self.name} registry have "
+                f'been automatically imported from {loc}',
+                logger='current',
+                level=logging.DEBUG)
+        self._imported = True
 
     def get(self, key: str) -> Optional[Type]:
         """Get the registry record.
@@ -464,7 +464,7 @@ class Registry:
                     'imported.',
                     logger='current',
                     level=logging.DEBUG)
-            except (ImportError, AttributeError, ModuleNotFoundError):
+            except (ImportError, AttributeError):
                 print_log(
                     f'Cannot auto import {scope}.registry, please check '
                     f'whether the package "{scope}" is installed correctly '
@@ -479,11 +479,7 @@ class Registry:
             else:
                 root = self._get_root_registry()
 
-                if scope != root._scope and scope not in root._children:
-                    # If not skip directly, `root.get(key)` will recursively
-                    # call itself until RecursionError is thrown.
-                    pass
-                else:
+                if scope == root._scope or scope in root._children:
                     obj_cls = root.get(key)
 
         if obj_cls is not None:

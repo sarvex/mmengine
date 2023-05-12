@@ -74,18 +74,17 @@ def add_args(parser: ArgumentParser,
     """
     for k, v in cfg.items():
         if isinstance(v, str):
-            parser.add_argument('--' + prefix + k)
+            parser.add_argument(f'--{prefix}{k}')
         elif isinstance(v, bool):
-            parser.add_argument('--' + prefix + k, action='store_true')
+            parser.add_argument(f'--{prefix}{k}', action='store_true')
         elif isinstance(v, int):
-            parser.add_argument('--' + prefix + k, type=int)
+            parser.add_argument(f'--{prefix}{k}', type=int)
         elif isinstance(v, float):
-            parser.add_argument('--' + prefix + k, type=float)
+            parser.add_argument(f'--{prefix}{k}', type=float)
         elif isinstance(v, dict):
             add_args(parser, v, prefix + k + '.')
         elif isinstance(v, abc.Iterable):
-            parser.add_argument(
-                '--' + prefix + k, type=type(next(iter(v))), nargs='+')
+            parser.add_argument(f'--{prefix}{k}', type=type(next(iter(v))), nargs='+')
         else:
             print_log(
                 f'cannot parse key {prefix + k} of type {type(v)}',
@@ -134,7 +133,7 @@ class Config:
                  env_variables: Optional[dict] = None):
         filename = str(filename) if isinstance(filename, Path) else filename
         if cfg_dict is None:
-            cfg_dict = dict()
+            cfg_dict = {}
         elif not isinstance(cfg_dict, dict):
             raise TypeError('cfg_dict must be a dict, but '
                             f'got {type(cfg_dict)}')
@@ -153,7 +152,7 @@ class Config:
             text = ''
         super().__setattr__('_text', text)
         if env_variables is None:
-            env_variables = dict()
+            env_variables = {}
         super().__setattr__('_env_variables', env_variables)
 
     @staticmethod
@@ -337,10 +336,10 @@ class Config:
             config_file = f.read()
         regexp = r'\{\{[\'\"]?\s*\$(\w+)\s*\:\s*(\S*?)\s*[\'\"]?\}\}'
         keys = re.findall(regexp, config_file)
-        env_variables = dict()
+        env_variables = {}
         for var_name, value in keys:
             regexp = r'\{\{[\'\"]?\s*\$' + var_name + r'\s*\:\s*' \
-                + value + r'\s*[\'\"]?\}\}'
+                    + value + r'\s*[\'\"]?\}\}'
             if var_name in os.environ:
                 value = os.environ[var_name]
                 env_variables[var_name] = value
@@ -464,7 +463,7 @@ class Config:
             else:
                 shutil.copyfile(filename, temp_config_file.name)
             # Substitute environment variables
-            env_variables = dict()
+            env_variables = {}
             if use_environment_variables:
                 env_variables = Config._substitute_env_variables(
                     temp_config_file.name, temp_config_file.name)
@@ -474,7 +473,7 @@ class Config:
 
             # Handle base files
             base_cfg_dict = ConfigDict()
-            cfg_text_list = list()
+            cfg_text_list = []
             for base_cfg_path in Config._get_base_files(temp_config_file.name):
                 base_cfg_path, scope = Config._get_cfg_path(
                     base_cfg_path, filename)
@@ -533,13 +532,13 @@ class Config:
         if DEPRECATION_KEY in cfg_dict:
             deprecation_info = cfg_dict.pop(DEPRECATION_KEY)
             warning_msg = f'The config file {filename} will be deprecated ' \
-                'in the future.'
+                    'in the future.'
             if 'expected' in deprecation_info:
                 warning_msg += f' Please use {deprecation_info["expected"]} ' \
-                    'instead.'
+                        'instead.'
             if 'reference' in deprecation_info:
                 warning_msg += ' More information can be found at ' \
-                    f'{deprecation_info["reference"]}'
+                        f'{deprecation_info["reference"]}'
             warnings.warn(warning_msg, DeprecationWarning)
 
         cfg_text = filename + '\n'
@@ -806,11 +805,7 @@ class Config:
             return s
 
         def _format_basic_types(k, v, use_mapping=False):
-            if isinstance(v, str):
-                v_str = repr(v)
-            else:
-                v_str = str(v)
-
+            v_str = repr(v) if isinstance(v, str) else str(v)
             if use_mapping:
                 k_str = f"'{k}'" if isinstance(k, str) else str(k)
                 attr_str = f'{k_str}: {v_str}'
@@ -832,7 +827,7 @@ class Config:
                     attr_str = f'{k_str}: {v_str}'
                 else:
                     attr_str = f'{str(k)}={v_str}'
-                attr_str = _indent(attr_str, indent) + ']'
+                attr_str = f'{_indent(attr_str, indent)}]'
             else:
                 attr_str = _format_basic_types(k, v, use_mapping)
             return attr_str
@@ -841,7 +836,7 @@ class Config:
             contain_invalid_identifier = False
             for key_name in dict_str:
                 contain_invalid_identifier |= \
-                    (not str(key_name).isidentifier())
+                        (not str(key_name).isidentifier())
             return contain_invalid_identifier
 
         def _format_dict(input_dict, outest_level=False):
@@ -861,7 +856,7 @@ class Config:
                         attr_str = f'{k_str}: dict({v_str}'
                     else:
                         attr_str = f'{str(k)}=dict({v_str}'
-                    attr_str = _indent(attr_str, indent) + ')' + end
+                    attr_str = f'{_indent(attr_str, indent)}){end}'
                 elif isinstance(v, list):
                     attr_str = _format_list(k, v, use_mapping) + end
                 else:
@@ -954,9 +949,8 @@ class Config:
         if file is None:
             if self.filename is None or self.filename.endswith('.py'):
                 return self.pretty_text
-            else:
-                file_format = self.filename.split('.')[-1]
-                return dump(cfg_dict, file_format=file_format)
+            file_format = self.filename.split('.')[-1]
+            return dump(cfg_dict, file_format=file_format)
         elif file.endswith('.py'):
             with open(file, 'w', encoding='utf-8') as f:
                 f.write(self.pretty_text)
@@ -1032,11 +1026,9 @@ class DictAction(Action):
             return float(val)
         except ValueError:
             pass
-        if val.lower() in ['true', 'false']:
-            return True if val.lower() == 'true' else False
-        if val == 'None':
-            return None
-        return val
+        if val.lower() in {'true', 'false'}:
+            return val.lower() == 'true'
+        return None if val == 'None' else val
 
     @staticmethod
     def _parse_iterable(val: str) -> Union[list, tuple, Any]:
@@ -1069,7 +1061,7 @@ class DictAction(Action):
             """
             assert (string.count('(') == string.count(')')) and (
                     string.count('[') == string.count(']')), \
-                f'Imbalanced brackets exist in {string}'
+                    f'Imbalanced brackets exist in {string}'
             end = len(string)
             for idx, char in enumerate(string):
                 pre = string[:idx]
@@ -1099,10 +1091,7 @@ class DictAction(Action):
             values.append(element)
             val = val[comma_idx + 1:]
 
-        if is_tuple:
-            return tuple(values)
-
-        return values
+        return tuple(values) if is_tuple else values
 
     def __call__(self,
                  parser: ArgumentParser,

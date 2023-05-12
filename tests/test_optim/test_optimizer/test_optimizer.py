@@ -481,7 +481,7 @@ class TestBuilder(TestCase):
                 lr=self.base_lr,
                 weight_decay=self.base_wd,
                 momentum=self.momentum))
-        paramwise_cfg = dict()
+        paramwise_cfg = {}
         optim_constructor = DefaultOptimWrapperConstructor(
             optim_wrapper_cfg, paramwise_cfg)
         optim_wrapper = optim_constructor(self.model)
@@ -498,7 +498,7 @@ class TestBuilder(TestCase):
                 lr=self.base_lr,
                 weight_decay=self.base_wd,
                 momentum=self.momentum))
-        paramwise_cfg = dict()
+        paramwise_cfg = {}
         optim_constructor = DefaultOptimWrapperConstructor(optim_wrapper_cfg)
         optim_wrapper = optim_constructor(model)
         self._check_default_optimizer(optim_wrapper.optimizer, model)
@@ -667,45 +667,40 @@ class TestBuilder(TestCase):
         # check params groups
         param_groups = optimizer.param_groups
 
-        groups = []
-        group_settings = []
-        # group 1, matches of 'param1'
-        # 'param1' is the longest match for 'sub.param1'
-        groups.append(['param1', 'sub.param1'])
-        group_settings.append({
-            'lr': self.base_lr * 10,
-            'momentum': self.momentum,
-            'weight_decay': self.base_wd,
-        })
-        # group 2, matches of 'sub.gn'
-        groups.append(['sub.gn.weight', 'sub.gn.bias'])
-        group_settings.append({
-            'lr': self.base_lr * 0.01,
-            'momentum': self.momentum,
-            'weight_decay': self.base_wd,
-        })
-        # group 3, matches of 'sub'
-        groups.append(['sub.conv1.weight', 'sub.conv1.bias'])
-        group_settings.append({
-            'lr': self.base_lr * 0.1,
-            'momentum': self.momentum,
-            'weight_decay': 0,
-        })
-        # group 4, bn is configured by 'norm_decay_mult'
-        groups.append(['bn.weight', 'bn.bias'])
-        group_settings.append({
-            'lr': self.base_lr,
-            'momentum': self.momentum,
-            'weight_decay': self.base_wd * 0.5,
-        })
-        # group 5, default group
-        groups.append(['conv1.weight', 'conv2.weight', 'conv2.bias'])
-        group_settings.append({
-            'lr': self.base_lr,
-            'momentum': self.momentum,
-            'weight_decay': self.base_wd
-        })
-
+        groups = [
+            ['param1', 'sub.param1'],
+            ['sub.gn.weight', 'sub.gn.bias'],
+            ['sub.conv1.weight', 'sub.conv1.bias'],
+            ['bn.weight', 'bn.bias'],
+            ['conv1.weight', 'conv2.weight', 'conv2.bias'],
+        ]
+        group_settings = [
+            {
+                'lr': self.base_lr * 10,
+                'momentum': self.momentum,
+                'weight_decay': self.base_wd,
+            },
+            {
+                'lr': self.base_lr * 0.01,
+                'momentum': self.momentum,
+                'weight_decay': self.base_wd,
+            },
+            {
+                'lr': self.base_lr * 0.1,
+                'momentum': self.momentum,
+                'weight_decay': 0,
+            },
+            {
+                'lr': self.base_lr,
+                'momentum': self.momentum,
+                'weight_decay': self.base_wd * 0.5,
+            },
+            {
+                'lr': self.base_lr,
+                'momentum': self.momentum,
+                'weight_decay': self.base_wd,
+            },
+        ]
         num_params = 14 if MMCV_FULL_AVAILABLE else 11
         assert len(param_groups) == num_params
         for i, (name, param) in enumerate(self.model.named_parameters()):
@@ -736,10 +731,8 @@ class TestBuilder(TestCase):
         # check params groups
         param_groups = optimizer.param_groups
 
-        groups = []
         group_settings = []
-        # group 1, matches of 'param1'
-        groups.append(['param1', 'sub.param1'])
+        groups = [['param1', 'sub.param1']]
         group_settings.append({
             'lr': self.base_lr * 10,
             'momentum': self.momentum,

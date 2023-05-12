@@ -51,8 +51,7 @@ class MemcachedBackend(BaseStorageBackend):
         filepath = str(filepath)
         import mc
         self._client.Get(filepath, self._mc_buffer)
-        value_buf = mc.ConvertBuffer(self._mc_buffer)
-        return value_buf
+        return mc.ConvertBuffer(self._mc_buffer)
 
     def get_text(self, filepath, encoding=None):
         raise NotImplementedError

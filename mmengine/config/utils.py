@@ -49,7 +49,7 @@ def _get_cfg_metainfo(package_path: str, cfg_path: str) -> dict:
     """
     meta_index_path = osp.join(package_path, '.mim', 'model-index.yml')
     meta_index = load(meta_index_path)
-    cfg_dict = dict()
+    cfg_dict = {}
     for meta_path in meta_index['Import']:
         meta_path = osp.join(package_path, '.mim', meta_path)
         cfg_meta = load(meta_path)

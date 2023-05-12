@@ -40,13 +40,11 @@ class ToyModel(BaseModel):
         outputs = self.linear1(inputs)
         outputs = self.linear2(outputs)
 
-        if mode == 'tensor':
+        if mode == 'tensor' or mode != 'loss' and mode == 'predict':
             return outputs
         elif mode == 'loss':
             loss = (data_sample - outputs).sum()
             outputs = dict(loss=loss)
-            return outputs
-        elif mode == 'predict':
             return outputs
 
 
@@ -112,27 +110,31 @@ class RunnerTestCase(TestCase):
                 dataset=dict(type='ToyDataset'),
                 sampler=dict(type='DefaultSampler', shuffle=True),
                 batch_size=3,
-                num_workers=0),
+                num_workers=0,
+            ),
             val_dataloader=dict(
                 dataset=dict(type='ToyDataset'),
                 sampler=dict(type='DefaultSampler', shuffle=False),
                 batch_size=3,
-                num_workers=0),
+                num_workers=0,
+            ),
             val_evaluator=[dict(type='ToyMetric')],
             test_dataloader=dict(
                 dataset=dict(type='ToyDataset'),
                 sampler=dict(type='DefaultSampler', shuffle=False),
                 batch_size=3,
-                num_workers=0),
+                num_workers=0,
+            ),
             test_evaluator=[dict(type='ToyMetric')],
             optim_wrapper=dict(optimizer=dict(type='SGD', lr=0.1)),
             train_cfg=dict(by_epoch=True, max_epochs=2, val_interval=1),
-            val_cfg=dict(),
-            test_cfg=dict(),
+            val_cfg={},
+            test_cfg={},
             default_hooks=dict(logger=dict(type='LoggerHook', interval=1)),
             custom_hooks=[],
             env_cfg=dict(dist_cfg=dict(backend='nccl')),
-            experiment_name='test1')
+            experiment_name='test1',
+        )
         self.epoch_based_cfg = Config(epoch_based_cfg)
 
         # prepare iter based cfg.
@@ -167,8 +169,7 @@ class RunnerTestCase(TestCase):
 
     def build_runner(self, cfg: Config):
         cfg.experiment_name = self.experiment_name
-        runner = Runner.from_cfg(cfg)
-        return runner
+        return Runner.from_cfg(cfg)
 
     @property
     def experiment_name(self):

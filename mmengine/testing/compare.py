@@ -101,10 +101,10 @@ def assert_dict_contains_subset(dict_obj: Dict[Any, Any],
         bool: Whether the dict_obj contains the expected_subset.
     """
 
-    for key, value in expected_subset.items():
-        if key not in dict_obj.keys() or _any(dict_obj[key] != value):
-            return False
-    return True
+    return not any(
+        key not in dict_obj.keys() or _any(dict_obj[key] != value)
+        for key, value in expected_subset.items()
+    )
 
 
 def assert_attrs_equal(obj: Any, expected_attrs: Dict[str, Any]) -> bool:
@@ -117,10 +117,10 @@ def assert_attrs_equal(obj: Any, expected_attrs: Dict[str, Any]) -> bool:
     Returns:
         bool: Whether the attribute of class object is correct.
     """
-    for attr, value in expected_attrs.items():
-        if not hasattr(obj, attr) or _any(getattr(obj, attr) != value):
-            return False
-    return True
+    return not any(
+        not hasattr(obj, attr) or _any(getattr(obj, attr) != value)
+        for attr, value in expected_attrs.items()
+    )
 
 
 def assert_dict_has_keys(obj: Dict[str, Any],

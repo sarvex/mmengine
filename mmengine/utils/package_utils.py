@@ -59,8 +59,7 @@ def package2module(package: str):
     from pkg_resources import get_distribution
     pkg = get_distribution(package)
     if pkg.has_metadata('top_level.txt'):
-        module_name = pkg.get_metadata('top_level.txt').split('\n')[0]
-        return module_name
+        return pkg.get_metadata('top_level.txt').split('\n')[0]
     else:
         raise ValueError(f'can not infer the module name of {package}')
 

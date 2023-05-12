@@ -58,10 +58,7 @@ class TestActivationAnalyzer(unittest.TestCase):
         trace = torch.jit.trace(lin, (lin_x, ))
         node_kinds = [node.kind() for node in trace.graph.nodes()]
         assert 'aten::addmm' in node_kinds or 'aten::linear' in node_kinds
-        if 'aten::addmm' in node_kinds:
-            self.lin_op = 'addmm'
-        else:
-            self.lin_op = 'linear'
+        self.lin_op = 'addmm' if 'aten::addmm' in node_kinds else 'linear'
 
     def test_conv2d(self) -> None:
         """Test the activation count for convolutions."""

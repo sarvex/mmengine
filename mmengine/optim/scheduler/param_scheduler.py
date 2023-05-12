@@ -482,11 +482,10 @@ class ConstantParamScheduler(_ParamScheduler):
                 group[self.param_name] for group in self.optimizer.param_groups
             ]
 
-        if self.last_step == self.total_iters:
-            return [
-                group[self.param_name] * (1.0 / self.factor)
-                for group in self.optimizer.param_groups
-            ]
+        return [
+            group[self.param_name] * (1.0 / self.factor)
+            for group in self.optimizer.param_groups
+        ]
 
 
 @PARAM_SCHEDULERS.register_module()
@@ -978,14 +977,14 @@ class OneCycleParamScheduler(_ParamScheduler):
         self.final_div_factor = final_div_factor
 
         # Validate total_steps
-        if total_steps is not None:
-            if total_steps <= 0 or not isinstance(total_steps, int):
-                raise ValueError('Expected positive integer total_steps, '
-                                 f'but got {total_steps}')
-            self.total_steps = total_steps
-        else:
+        if total_steps is None:
             self.total_steps = self.end - self.begin
 
+        elif total_steps <= 0 or not isinstance(total_steps, int):
+            raise ValueError('Expected positive integer total_steps, '
+                             f'but got {total_steps}')
+        else:
+            self.total_steps = total_steps
         # Validate pct_start
         if pct_start < 0 or pct_start > 1 or not isinstance(pct_start, float):
             raise ValueError('Expected float between 0 and 1 pct_start, '
@@ -1041,7 +1040,7 @@ class OneCycleParamScheduler(_ParamScheduler):
                 group[f'initial_{param_name}'] = max_values[idx] / div_factor
                 group[f'max_{param_name}'] = max_values[idx]
                 group[f'min_{param_name}'] = \
-                    group[f'initial_{param_name}'] / final_div_factor
+                        group[f'initial_{param_name}'] / final_div_factor
 
         super().__init__(
             optimizer=optimizer,
@@ -1054,14 +1053,13 @@ class OneCycleParamScheduler(_ParamScheduler):
 
     def _format_param(self, name, optimizer, param):
         """Return correctly formatted lr/momentum for each param group."""
-        if isinstance(param, (list, tuple)):
-            if len(param) != len(optimizer.param_groups):
-                raise ValueError(
-                    f'expected {len(optimizer.param_groups)} values '
-                    f'for {name}, got {len(param)}')
-            return param
-        else:
+        if not isinstance(param, (list, tuple)):
             return [param] * len(optimizer.param_groups)
+        if len(param) != len(optimizer.param_groups):
+            raise ValueError(
+                f'expected {len(optimizer.param_groups)} values '
+                f'for {name}, got {len(param)}')
+        return param
 
     @staticmethod
     def _annealing_cos(start, end, pct):
@@ -1124,8 +1122,10 @@ class OneCycleParamScheduler(_ParamScheduler):
                 if step_num <= end_step or i == len(self._schedule_phases) - 1:
                     pct = (step_num - start_step) / (end_step - start_step)
                     computed_param = self.anneal_func(
-                        group[phase['start_' + self.param_name]],
-                        group[phase['end_' + self.param_name]], pct)
+                        group[phase[f'start_{self.param_name}']],
+                        group[phase[f'end_{self.param_name}']],
+                        pct,
+                    )
                     break
                 start_step = phase['end_step']
 
@@ -1187,7 +1187,7 @@ class CosineRestartParamScheduler(_ParamScheduler):
         assert (len(self.periods) == len(self.restart_weights)
                 ), 'periods and restart_weights should have the same length.'
         self.cumulative_periods = [
-            sum(self.periods[0:i + 1]) for i in range(0, len(self.periods))
+            sum(self.periods[: i + 1]) for i in range(0, len(self.periods))
         ]
 
         super().__init__(
@@ -1279,10 +1279,14 @@ class CosineRestartParamScheduler(_ParamScheduler):
             Optional[int]: The position of the right-closest number in the
             period list. If not in the period, return None.
         """
-        for i, period in enumerate(cumulative_periods):
-            if iteration < period:
-                return i
-        return None
+        return next(
+            (
+                i
+                for i, period in enumerate(cumulative_periods)
+                if iteration < period
+            ),
+            None,
+        )
 
 
 @PARAM_SCHEDULERS.register_module()
@@ -1370,19 +1374,21 @@ class ReduceOnPlateauParamScheduler(_ParamScheduler):
 
         # Attach optimizer
         if not isinstance(optimizer, (Optimizer, OptimWrapper)):
-            raise TypeError('``optimizer`` should be an Optimizer,'
-                            'but got {}'.format(type(optimizer).__name__))
+            raise TypeError(
+                f'``optimizer`` should be an Optimizer,but got {type(optimizer).__name__}'
+            )
         self.optimizer = optimizer
         self.param_name = param_name
 
         if end <= begin:
-            raise ValueError('end should be larger than begin, but got'
-                             ' begin={}, end={}'.format(begin, end))
+            raise ValueError(
+                f'end should be larger than begin, but got begin={begin}, end={end}'
+            )
         self.begin = begin
         self.end = end
 
         assert by_epoch, \
-            f'Now {type(self).__name__} only support by_epoch=True'
+                f'Now {type(self).__name__} only support by_epoch=True'
         self.by_epoch = by_epoch
 
         assert isinstance(last_step, int) and last_step >= -1
@@ -1411,8 +1417,9 @@ class ReduceOnPlateauParamScheduler(_ParamScheduler):
 
         if isinstance(min_value, (list, tuple)):
             if len(min_value) != len(optimizer.param_groups):
-                raise ValueError('expected {} min_lrs, got {}'.format(
-                    len(optimizer.param_groups), len(min_value)))
+                raise ValueError(
+                    f'expected {len(optimizer.param_groups)} min_lrs, got {len(min_value)}'
+                )
             self.min_values = list(min_value)
         else:
             self.min_values = [min_value] * len(  # type: ignore
@@ -1461,32 +1468,31 @@ class ReduceOnPlateauParamScheduler(_ParamScheduler):
 
             # convert `metric` to float, in case it's a zero-dim Tensor
             metric = metrics.get(self.monitor, None)
-            if metric is not None:
-                if self._is_better(metric, self.best):
-                    self.best = metric
-                    self.num_bad_epochs = 0
-                else:
-                    self.num_bad_epochs += 1
-
-                if self._in_cooldown():
-                    self.cooldown_counter -= 1
-                    self.num_bad_epochs = 0  # ignore bad epochs in cooldown
-
-                if self.num_bad_epochs > self.patience:
-                    values = self._get_value()
-
-                    for i, data in enumerate(
-                            zip(self.optimizer.param_groups, values)):
-                        param_group, value = data
-                        if param_group[self.param_name] - value > self.eps:
-                            param_group[self.param_name] = value
-                            self.print_value(self.verbose, i, value)
-                    self.cooldown_counter = self.cooldown
-                    self.num_bad_epochs = 0
-
-            else:
+            if metric is None:
                 raise KeyError(f'Excepted key in {list(metrics.keys())},'
                                f' but got key {self.monitor} is not in dict')
+
+            if self._is_better(metric, self.best):
+                self.best = metric
+                self.num_bad_epochs = 0
+            else:
+                self.num_bad_epochs += 1
+
+            if self._in_cooldown():
+                self.cooldown_counter -= 1
+                self.num_bad_epochs = 0  # ignore bad epochs in cooldown
+
+            if self.num_bad_epochs > self.patience:
+                values = self._get_value()
+
+                for i, data in enumerate(
+                        zip(self.optimizer.param_groups, values)):
+                    param_group, value = data
+                    if param_group[self.param_name] - value > self.eps:
+                        param_group[self.param_name] = value
+                        self.print_value(self.verbose, i, value)
+                self.cooldown_counter = self.cooldown
+                self.num_bad_epochs = 0
 
         self._last_value = [
             group[self.param_name] for group in self.optimizer.param_groups
@@ -1545,11 +1551,7 @@ class ReduceOnPlateauParamScheduler(_ParamScheduler):
             raise ValueError(f'threshold mode {threshold_rule}'
                              ' is unknown!')
 
-        if rule == 'less':
-            self.rule_worse = INF
-        else:  # rule == 'greater':
-            self.rule_worse = -INF
-
+        self.rule_worse = INF if rule == 'less' else -INF
         self.rule = rule
         self.threshold = threshold
         self.threshold_rule = threshold_rule

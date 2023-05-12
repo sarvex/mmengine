@@ -86,7 +86,7 @@ class Evaluator:
                         f'metric name {name}. Please make sure all metrics '
                         'have different prefixes.')
 
-            metrics.update(_results)
+            metrics |= _results
         return metrics
 
     def offline_evaluate(self,
@@ -126,10 +126,7 @@ class Evaluator:
 
         size = 0
         for output_chunk in get_chunks(iter(data_samples), chunk_size):
-            if data is not None:
-                data_chunk = pseudo_collate(next(data))  # type: ignore
-            else:
-                data_chunk = None
+            data_chunk = pseudo_collate(next(data)) if data is not None else None
             size += len(output_chunk)
             self.process(output_chunk, data_chunk)
         return self.evaluate(size)

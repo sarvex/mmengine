@@ -77,7 +77,6 @@ class TestLogProcessor(RunnerTestCase):
          [False, 'train', False], [True, 'val', True], [True, 'val', False],
          [False, 'val', True], [False, 'val', False], [True, 'test', True],
          [True, 'test', False], [False, 'test', True], [False, 'test', False]))
-    # yapf: enable
     def test_get_log_after_iter(self, by_epoch, mode, log_with_hierarchy):
         # Prepare LoggerHook
         log_processor = LogProcessor(
@@ -91,7 +90,7 @@ class TestLogProcessor(RunnerTestCase):
         else:
             train_logs = dict(time=1.0, data_time=1.0, loss_cls=1.0)
         log_processor._collect_scalars = \
-            lambda *args, **kwargs: copy.deepcopy(train_logs)
+                lambda *args, **kwargs: copy.deepcopy(train_logs)
         _, out = log_processor.get_log_after_iter(self.runner, 1, mode)
         # Verify that the correct context have been logged.
         cur_loop = log_processor._get_cur_loop(self.runner, mode)
@@ -103,46 +102,26 @@ class TestLogProcessor(RunnerTestCase):
             else:
                 log_str = (f'Epoch({mode}) [2/{len(cur_loop.dataloader)}]  ')
 
-            if mode == 'train':
-                log_str += f"lr: {train_logs['lr']:.4e}  "
-            else:
-                log_str += '  '
-
-            log_str += (f'eta: 0:00:40  '
-                        f"time: {train_logs['time']:.4f}  "
-                        f"data_time: {train_logs['data_time']:.4f}  ")
-
-            if torch.cuda.is_available():
-                log_str += 'memory: 100  '
-            if mode == 'train':
-                log_str += f"loss_cls: {train_logs['loss_cls']:.4f}"
-            assert out == log_str
+        elif mode == 'train':
+            max_iters = self.runner.max_iters
+            log_str = f'Iter({mode}) [11/{max_iters}]  '
+        elif mode == 'val':
+            max_iters = len(cur_loop.dataloader)
+            log_str = f'Iter({mode}) [ 2/{max_iters}]  '
         else:
-            if mode == 'train':
-                max_iters = self.runner.max_iters
-                log_str = f'Iter({mode}) [11/{max_iters}]  '
-            elif mode == 'val':
-                max_iters = len(cur_loop.dataloader)
-                log_str = f'Iter({mode}) [ 2/{max_iters}]  '
-            else:
-                max_iters = len(cur_loop.dataloader)
-                log_str = f'Iter({mode}) [2/{max_iters}]  '
+            max_iters = len(cur_loop.dataloader)
+            log_str = f'Iter({mode}) [2/{max_iters}]  '
 
-            if mode == 'train':
-                log_str += f"lr: {train_logs['lr']:.4e}  "
-            else:
-                log_str += '  '
+        log_str += f"lr: {train_logs['lr']:.4e}  " if mode == 'train' else '  '
+        log_str += (f'eta: 0:00:40  '
+                    f"time: {train_logs['time']:.4f}  "
+                    f"data_time: {train_logs['data_time']:.4f}  ")
 
-            log_str += (f'eta: 0:00:40  '
-                        f"time: {train_logs['time']:.4f}  "
-                        f"data_time: {train_logs['data_time']:.4f}  ")
-
-            if torch.cuda.is_available():
-                log_str += 'memory: 100  '
-
-            if mode == 'train':
-                log_str += f"loss_cls: {train_logs['loss_cls']:.4f}"
-            assert out == log_str
+        if torch.cuda.is_available():
+            log_str += 'memory: 100  '
+        if mode == 'train':
+            log_str += f"loss_cls: {train_logs['loss_cls']:.4f}"
+        assert out == log_str
 
     @parameterized.expand(
         ([True, 'val', True], [True, 'val', False], [False, 'val', True],
@@ -166,14 +145,13 @@ class TestLogProcessor(RunnerTestCase):
                              'cm: \ntensor([1, 2, 3])\n  data_time: 1.0000')
         if by_epoch:
             if mode == 'test':
-                assert out == 'Epoch(test) [5/5]    ' + expect_metric_str
+                assert out == f'Epoch(test) [5/5]    {expect_metric_str}'
             else:
-                assert out == 'Epoch(val) [1][10/10]    ' + expect_metric_str
+                assert out == f'Epoch(val) [1][10/10]    {expect_metric_str}'
+        elif mode == 'test':
+            assert out == f'Iter(test) [5/5]    {expect_metric_str}'
         else:
-            if mode == 'test':
-                assert out == 'Iter(test) [5/5]    ' + expect_metric_str
-            else:
-                assert out == 'Iter(val) [10/10]    ' + expect_metric_str
+            assert out == f'Iter(val) [10/10]    {expect_metric_str}'
 
     def test_collect_scalars(self):
         history_count = np.ones(100)

@@ -113,7 +113,7 @@ class TestParameterScheduler(TestCase):
             scheduler.step()
         scheduler2 = ExponentialParamScheduler(
             self.optimizer, param_name='lr', gamma=0.9, last_step=4)
-        for epoch in range(6):
+        for _ in range(6):
             results.append(self.optimizer.param_groups[0]['lr'])
             scheduler2.step()
 
@@ -121,10 +121,10 @@ class TestParameterScheduler(TestCase):
             assert_allclose(
                 targets[epoch],
                 results[epoch],
-                msg='lr is wrong in epoch {}: expected {}, got {}'.format(
-                    epoch, targets[epoch], results[epoch]),
+                msg=f'lr is wrong in epoch {epoch}: expected {targets[epoch]}, got {results[epoch]}',
                 atol=1e-5,
-                rtol=0)
+                rtol=0,
+            )
 
     def test_scheduler_before_optim_warning(self):
         """warns if scheduler is used before optimizer."""
@@ -174,10 +174,10 @@ class TestParameterScheduler(TestCase):
                 assert_allclose(
                     target,
                     result,
-                    msg='LR is wrong in epoch {}: expected {}, got {}'.format(
-                        epoch, t, r),
+                    msg=f'LR is wrong in epoch {epoch}: expected {t}, got {r}',
                     atol=1e-5,
-                    rtol=0)
+                    rtol=0,
+                )
 
     def test_scheduler_step_count(self):
         iteration = 10
@@ -186,7 +186,7 @@ class TestParameterScheduler(TestCase):
         self.assertEqual(scheduler.last_step, 0)
         target = [i + 1 for i in range(iteration)]
         step_counts = []
-        for i in range(iteration):
+        for _ in range(iteration):
             self.optimizer.step()
             scheduler.step()
             step_counts.append(scheduler.last_step)
@@ -256,11 +256,10 @@ class TestParameterScheduler(TestCase):
                 assert_allclose(
                     target[epoch],
                     param_group[param_name],
-                    msg='{} is wrong in epoch {}: expected {}, got {}'.format(
-                        param_name, epoch, target[epoch],
-                        param_group[param_name]),
+                    msg=f'{param_name} is wrong in epoch {epoch}: expected {target[epoch]}, got {param_group[param_name]}',
                     atol=1e-5,
-                    rtol=0)
+                    rtol=0,
+                )
             [
                 scheduler.step(**step_kwargs[epoch][i])
                 for i, scheduler in enumerate(schedulers)

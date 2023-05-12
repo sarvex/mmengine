@@ -17,8 +17,7 @@ def parse_args():
         'Note that the quotation marks are necessary and that no white space '
         'is allowed.')
 
-    args = parser.parse_args()
-    return args
+    return parser.parse_args()
 
 
 def main():

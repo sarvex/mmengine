@@ -99,7 +99,7 @@ def load_state_dict(module, state_dict, strict=False, logger=None):
             f'missing keys in source state_dict: {", ".join(missing_keys)}\n')
 
     rank, _ = get_dist_info()
-    if len(err_msg) > 0 and rank == 0:
+    if err_msg and rank == 0:
         err_msg.insert(
             0, 'The model and loaded state dict do not match exactly\n')
         err_msg = '\n'.join(err_msg)
@@ -112,7 +112,7 @@ def load_state_dict(module, state_dict, strict=False, logger=None):
 def get_torchvision_models():
     import torchvision
     if digit_version(torchvision.__version__) < digit_version('0.13.0a0'):
-        model_urls = dict()
+        model_urls = {}
         # When the version of torchvision is lower than 0.13, the model url is
         # not declared in `torchvision.model.__init__.py`, so we need to
         # iterate through `torchvision.models.__path__` to get the url for each
@@ -124,7 +124,7 @@ def get_torchvision_models():
             _zoo = import_module(f'torchvision.models.{name}')
             if hasattr(_zoo, 'model_urls'):
                 _urls = getattr(_zoo, 'model_urls')
-                model_urls.update(_urls)
+                model_urls |= _urls
     else:
         # Since torchvision bumps to v0.13, the weight loading logic,
         # model keys and model urls have been changed. Here the URLs of old
@@ -182,9 +182,7 @@ def get_external_models():
 
 def get_mmcls_models():
     mmcls_json_path = osp.join(mmengine.__path__[0], 'hub/mmcls.json')
-    mmcls_urls = load_file(mmcls_json_path)
-
-    return mmcls_urls
+    return load_file(mmcls_json_path)
 
 
 def get_deprecated_model_names():
@@ -206,9 +204,7 @@ def _process_mmcls_checkpoint(checkpoint):
     for k, v in state_dict.items():
         if k.startswith('backbone.'):
             new_state_dict[k[9:]] = v
-    new_checkpoint = dict(state_dict=new_state_dict)
-
-    return new_checkpoint
+    return dict(state_dict=new_state_dict)
 
 
 class CheckpointLoader:
@@ -314,8 +310,7 @@ def load_from_local(filename, map_location):
     filename = osp.expanduser(filename)
     if not osp.isfile(filename):
         raise FileNotFoundError(f'{filename} can not be found.')
-    checkpoint = torch.load(filename, map_location=map_location)
-    return checkpoint
+    return torch.load(filename, map_location=map_location)
 
 
 @CheckpointLoader.register_scheme(prefixes=('http://', 'https://'))
@@ -467,15 +462,12 @@ def load_from_openmmlab(filename, map_location=None):
             level=logging.WARNING)
         model_name = deprecated_urls[model_name]
     model_url = model_urls[model_name]
-    # check if is url
     if model_url.startswith(('http://', 'https://')):
-        checkpoint = load_from_http(model_url, map_location=map_location)
-    else:
-        filename = osp.join(_get_mmengine_home(), model_url)
-        if not osp.isfile(filename):
-            raise FileNotFoundError(f'{filename} can not be found.')
-        checkpoint = torch.load(filename, map_location=map_location)
-    return checkpoint
+        return load_from_http(model_url, map_location=map_location)
+    filename = osp.join(_get_mmengine_home(), model_url)
+    if not osp.isfile(filename):
+        raise FileNotFoundError(f'{filename} can not be found.')
+    return torch.load(filename, map_location=map_location)
 
 
 @CheckpointLoader.register_scheme(prefixes='mmcls://')

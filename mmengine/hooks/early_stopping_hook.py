@@ -52,13 +52,12 @@ class EarlyStoppingHook(Hook):
     ):
 
         self.monitor = monitor
-        if rule is not None:
-            if rule not in ['greater', 'less']:
-                raise ValueError(
-                    '`rule` should be either "greater" or "less", '
-                    f'but got {rule}')
-        else:
+        if rule is None:
             rule = self._init_rule(monitor)
+        elif rule not in ['greater', 'less']:
+            raise ValueError(
+                '`rule` should be either "greater" or "less", '
+                f'but got {rule}')
         self.rule = rule
         self.min_delta = min_delta if rule == 'greater' else -1 * min_delta
         self.strict = strict

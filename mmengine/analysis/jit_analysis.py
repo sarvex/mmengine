@@ -267,8 +267,7 @@ class JitModelAnalysis:
         """
         stats = self._analyze()
         module_name = self.canonical_module_name(module_name)
-        total_count = sum(stats.counts[module_name].values())
-        return total_count
+        return sum(stats.counts[module_name].values())
 
     def by_operator(self, module_name: str = '') -> typing.Counter[str]:
         """Returns the statistics for a requested module, grouped by operator
@@ -513,8 +512,7 @@ class JitModelAnalysis:
 
         for op, freq in ops.items():
             print_log(
-                'Unsupported operator {} encountered {} time(s)'.format(
-                    op, freq),
+                f'Unsupported operator {op} encountered {freq} time(s)',
                 'current',
                 logging.WARNING,
             )
@@ -522,19 +520,18 @@ class JitModelAnalysis:
     def _warn_uncalled_mods(self, uncalled_mods: Set[str]) -> None:
         if not self._enable_warn_uncalled_mods:
             return
-        uncalled_mods = {x for x in uncalled_mods if self._has_forward(x)}
-        if len(uncalled_mods) == 0:
+        if uncalled_mods := {x for x in uncalled_mods if self._has_forward(x)}:
+            print_log(
+                'The following submodules of the model were never '
+                'called during the trace of the graph. They may be '
+                'unused, or they were accessed by direct calls to '
+                '.forward() or via other python methods. In the latter '
+                'case they will have zeros for statistics, though their '
+                'statistics will still contribute to their parent calling '
+                'module.\n' + ', '.join(sorted(uncalled_mods)), 'current',
+                logging.WARNING)
+        else:
             return
-
-        print_log(
-            'The following submodules of the model were never '
-            'called during the trace of the graph. They may be '
-            'unused, or they were accessed by direct calls to '
-            '.forward() or via other python methods. In the latter '
-            'case they will have zeros for statistics, though their '
-            'statistics will still contribute to their parent calling '
-            'module.\n' + ', '.join(sorted(uncalled_mods)), 'current',
-            logging.WARNING)
 
     def _get_aliases(self,
                      model: nn.Module) -> Dict[Union[str, nn.Module], str]:
@@ -587,7 +584,7 @@ class JitModelAnalysis:
             if kind == 'prim::PythonOp':
                 # for PythonOp, pyname contains the actual name in Python
                 # pyre-fixme[16]: `Node` has no attribute `pyname`.
-                kind = kind + '.' + node.pyname()
+                kind = f'{kind}.{node.pyname()}'
             scope_names = node.scopeName().split('/')
             all_seen.update(scope_names)
             # The result of node.scopeName() is like: `layer1/layer1.layer`
@@ -641,10 +638,7 @@ class JitModelAnalysis:
         """Get simplified name of the op without the preceding namespace, e.g.
         aten::batch_norm -> batch_norm."""
         p = full_op_name.find('::')
-        if p != -1:
-            return full_op_name[p + 2:]
-        else:
-            return full_op_name
+        return full_op_name[p + 2:] if p != -1 else full_op_name
 
     def _has_forward(self, mod_name: str) -> bool:
         # Whether the module has a valid forward method.
@@ -664,10 +658,7 @@ class JitModelAnalysis:
         no_forward_mods = {
             nn.ModuleList, nn.ModuleDict, nn.Module, nn.Identity
         }
-        for mod in no_forward_mods:
-            if module_type.forward is mod.forward:
-                return False
-        return True
+        return all(module_type.forward is not mod.forward for mod in no_forward_mods)
 
     def _should_ignore_node(self, node) -> bool:
         kind = node.kind()
@@ -679,6 +670,4 @@ class JitModelAnalysis:
         if kind.startswith('prim::PythonOp') or kind.startswith(
                 'prim::CallFunction'):
             return False
-        if kind.startswith('prim::'):
-            return True
-        return False
+        return bool(kind.startswith('prim::'))

@@ -137,7 +137,7 @@ class InstanceData(BaseDataElement):
         The value must have the attribute of `__len__` and have the same length
         of `InstanceData`.
         """
-        if name in ('_metainfo_fields', '_data_fields'):
+        if name in {'_metainfo_fields', '_data_fields'}:
             if not hasattr(self, name):
                 super().__setattr__(name, value)
             else:
@@ -150,11 +150,11 @@ class InstanceData(BaseDataElement):
 
             if len(self) > 0:
                 assert len(value) == len(self), 'The length of ' \
-                                                f'values {len(value)} is ' \
-                                                'not consistent with ' \
-                                                'the length of this ' \
-                                                ':obj:`InstanceData` ' \
-                                                f'{len(self)}'
+                                                    f'values {len(value)} is ' \
+                                                    'not consistent with ' \
+                                                    'the length of this ' \
+                                                    ':obj:`InstanceData` ' \
+                                                    f'{len(self)}'
             super().__setattr__(name, value)
 
     __setitem__ = __setattr__
@@ -193,16 +193,16 @@ class InstanceData(BaseDataElement):
         new_data = self.__class__(metainfo=self.metainfo)
         if isinstance(item, torch.Tensor):
             assert item.dim() == 1, 'Only support to get the' \
-                                    ' values along the first dimension.'
+                                        ' values along the first dimension.'
             if isinstance(item, BoolTypeTensor.__args__):
                 assert len(item) == len(self), 'The shape of the ' \
-                                               'input(BoolTensor) ' \
-                                               f'{len(item)} ' \
-                                               'does not match the shape ' \
-                                               'of the indexed tensor ' \
-                                               'in results_field ' \
-                                               f'{len(self)} at ' \
-                                               'first dimension.'
+                                                   'input(BoolTensor) ' \
+                                                   f'{len(item)} ' \
+                                                   'does not match the shape ' \
+                                                   'of the indexed tensor ' \
+                                                   'in results_field ' \
+                                                   f'{len(self)} at ' \
+                                                   'first dimension.'
 
             for k, v in self.items():
                 if isinstance(v, torch.Tensor):
@@ -220,8 +220,7 @@ class InstanceData(BaseDataElement):
                         indexes = item.cpu().numpy().tolist()
                     slice_list = []
                     if indexes:
-                        for index in indexes:
-                            slice_list.append(slice(index, None, len(v)))
+                        slice_list.extend(slice(index, None, len(v)) for index in indexes)
                     else:
                         slice_list.append(slice(None, 0, None))
                     r_list = [v[s] for s in slice_list]
@@ -260,7 +259,7 @@ class InstanceData(BaseDataElement):
         """
         assert all(
             isinstance(results, InstanceData) for results in instances_list)
-        assert len(instances_list) > 0
+        assert instances_list
         if len(instances_list) == 1:
             return instances_list[0]
 
@@ -270,13 +269,13 @@ class InstanceData(BaseDataElement):
             instances.all_keys() for instances in instances_list
         ]
         assert len({len(field_keys) for field_keys in field_keys_list}) \
-               == 1 and len(set(itertools.chain(*field_keys_list))) \
-               == len(field_keys_list[0]), 'There are different keys in ' \
-                                           '`instances_list`, which may ' \
-                                           'cause the cat operation ' \
-                                           'to fail. Please make sure all ' \
-                                           'elements in `instances_list` ' \
-                                           'have the exact same key.'
+                   == 1 and len(set(itertools.chain(*field_keys_list))) \
+                   == len(field_keys_list[0]), 'There are different keys in ' \
+                                               '`instances_list`, which may ' \
+                                               'cause the cat operation ' \
+                                               'to fail. Please make sure all ' \
+                                               'elements in `instances_list` ' \
+                                               'have the exact same key.'
 
         new_data = instances_list[0].__class__(
             metainfo=instances_list[0].metainfo)
@@ -302,7 +301,4 @@ class InstanceData(BaseDataElement):
 
     def __len__(self) -> int:
         """int: The length of InstanceData."""
-        if len(self._data_fields) > 0:
-            return len(self.values()[0])
-        else:
-            return 0
+        return len(self.values()[0]) if len(self._data_fields) > 0 else 0

@@ -276,18 +276,13 @@ class TestBaseDataset:
             data_prefix=dict(img_path='imgs'),
             ann_file='annotations/dummy_annotation.json',
             lazy_init=lazy_init)
-        if not lazy_init:
-            assert dataset._fully_initialized
-            assert hasattr(dataset, 'data_list')
-            assert len(dataset) == 3
-        else:
+        if lazy_init:
             # test `__len__()` when lazy_init is True
             assert not dataset._fully_initialized
             assert not dataset.data_list
-            # call `full_init()` automatically
-            assert len(dataset) == 3
-            assert dataset._fully_initialized
-            assert hasattr(dataset, 'data_list')
+        assert len(dataset) == 3
+        assert hasattr(dataset, 'data_list')
+        assert dataset._fully_initialized
 
     def test_compose(self):
         # test callable transform
@@ -356,10 +351,7 @@ class TestBaseDataset:
         # Test get valid image by `_rand_another`
 
         def fake_prepare_data(idx):
-            if idx == 0:
-                return None
-            else:
-                return 1
+            return None if idx == 0 else 1
 
         dataset.prepare_data = fake_prepare_data
         dataset[0]
@@ -530,7 +522,7 @@ class TestBaseDataset:
             assert dataset_copy[i] == ori_data
 
         with pytest.raises(TypeError):
-            dataset.get_subset_(dict())
+            dataset.get_subset_({})
 
     @pytest.mark.parametrize(
         'lazy_init, serialize_data',

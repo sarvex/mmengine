@@ -12,10 +12,7 @@ from mmengine.utils.dl_utils import is_jit_tracing
 def test_is_jit_tracing():
 
     def foo(x):
-        if is_jit_tracing():
-            return x
-        else:
-            return x.tolist()
+        return x if is_jit_tracing() else x.tolist()
 
     x = torch.rand(3)
     # test without trace

@@ -163,10 +163,7 @@ class CheckpointHook(Hook):
         self.backend_args = backend_args
 
         if filename_tmpl is None:
-            if self.by_epoch:
-                self.filename_tmpl = 'epoch_{}.pth'
-            else:
-                self.filename_tmpl = 'iter_{}.pth'
+            self.filename_tmpl = 'epoch_{}.pth' if self.by_epoch else 'iter_{}.pth'
         else:
             self.filename_tmpl = filename_tmpl
 
@@ -182,10 +179,8 @@ class CheckpointHook(Hook):
                     'Only support one "auto" in "save_best" list.')
             assert len(save_best) == len(
                 set(save_best)), ('Find duplicate element in "save_best".')
-        else:
-            # convert str to list[str]
-            if save_best is not None:
-                save_best = [save_best]  # type: ignore # noqa: F401
+        elif save_best is not None:
+            save_best = [save_best]  # type: ignore # noqa: F401
         self.save_best = save_best
 
         # rule logic
@@ -221,16 +216,19 @@ class CheckpointHook(Hook):
             self.less_keys = less_keys  # type: ignore
 
         if self.save_best is not None:
-            self.is_better_than: Dict[str, Callable] = dict()
+            self.is_better_than: Dict[str, Callable] = {}
             self._init_rule(rule, self.save_best)
             if len(self.key_indicators) == 1:
                 self.best_ckpt_path: Optional[str] = None
             else:
-                self.best_ckpt_path_dict: Dict = dict()
+                self.best_ckpt_path_dict: Dict = {}
 
         # published keys
-        if not (isinstance(published_keys, str)
-                or is_seq_of(published_keys, str) or published_keys is None):
+        if (
+            not isinstance(published_keys, str)
+            and not is_seq_of(published_keys, str)
+            and published_keys is not None
+        ):
             raise TypeError(
                 '"published_keys" should be a str or a sequence of str or '
                 f'None, but got {type(published_keys)}')
@@ -279,20 +277,19 @@ class CheckpointHook(Hook):
 
         if self.save_best is not None:
             if len(self.key_indicators) == 1:
-                if 'best_ckpt' not in runner.message_hub.runtime_info:
-                    self.best_ckpt_path = None
-                else:
-                    self.best_ckpt_path = runner.message_hub.get_info(
-                        'best_ckpt')
+                self.best_ckpt_path = (
+                    None
+                    if 'best_ckpt' not in runner.message_hub.runtime_info
+                    else runner.message_hub.get_info('best_ckpt')
+                )
             else:
                 for key_indicator in self.key_indicators:
                     best_ckpt_name = f'best_ckpt_{key_indicator}'
-                    if best_ckpt_name not in runner.message_hub.runtime_info:
-                        self.best_ckpt_path_dict[key_indicator] = None
-                    else:
-                        self.best_ckpt_path_dict[
-                            key_indicator] = runner.message_hub.get_info(
-                                best_ckpt_name)
+                    self.best_ckpt_path_dict[key_indicator] = (
+                        None
+                        if best_ckpt_name not in runner.message_hub.runtime_info
+                        else runner.message_hub.get_info(best_ckpt_name)
+                    )
 
     def after_train_epoch(self, runner) -> None:
         """Save the checkpoint and synchronize buffers after each epoch.
@@ -372,7 +369,7 @@ class CheckpointHook(Hook):
                 logger='current')
         checkpoint_data = pickle.dumps(checkpoint)
         sha = hashlib.sha256(checkpoint_data).hexdigest()
-        final_path = osp.splitext(ckpt_path)[0] + f'-{sha[:8]}.pth'
+        final_path = f'{osp.splitext(ckpt_path)[0]}-{sha[:8]}.pth'
         save_checkpoint(checkpoint, final_path)
         print_log(
             f'The checkpoint ({ckpt_path}) is published to '
@@ -411,10 +408,7 @@ class CheckpointHook(Hook):
 
         # remove other checkpoints
         if self.max_keep_ckpts > 0:
-            if self.by_epoch:
-                current_ckpt = runner.epoch + 1
-            else:
-                current_ckpt = runner.iter + 1
+            current_ckpt = runner.epoch + 1 if self.by_epoch else runner.iter + 1
             redundant_ckpts = range(
                 current_ckpt - self.max_keep_ckpts * self.interval, 0,
                 -self.interval)

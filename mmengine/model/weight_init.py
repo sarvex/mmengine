@@ -120,8 +120,7 @@ def caffe2_xavier_init(module, bias=0):
 
 def bias_init_with_prob(prior_prob):
     """initialize conv/fc bias value according to a given probability value."""
-    bias_init = float(-np.log((1 - prior_prob) / prior_prob))
-    return bias_init
+    return float(-np.log((1 - prior_prob) / prior_prob))
 
 
 def _get_bases_name(m):
@@ -135,27 +134,21 @@ class BaseInit:
         if not isinstance(bias, (int, float)):
             raise TypeError(f'bias must be a number, but got a {type(bias)}')
 
-        if bias_prob is not None:
-            if not isinstance(bias_prob, float):
-                raise TypeError(f'bias_prob type must be float, \
+        if bias_prob is not None and not isinstance(bias_prob, float):
+            raise TypeError(f'bias_prob type must be float, \
                     but got {type(bias_prob)}')
 
-        if layer is not None:
-            if not isinstance(layer, (str, list)):
-                raise TypeError(f'layer must be a str or a list of str, \
-                    but got a {type(layer)}')
-        else:
+        if layer is None:
             layer = []
 
-        if bias_prob is not None:
-            self.bias = bias_init_with_prob(bias_prob)
-        else:
-            self.bias = bias
+        elif not isinstance(layer, (str, list)):
+            raise TypeError(f'layer must be a str or a list of str, \
+                    but got a {type(layer)}')
+        self.bias = bias_init_with_prob(bias_prob) if bias_prob is not None else bias
         self.layer = [layer] if isinstance(layer, str) else layer
 
     def _get_init_info(self):
-        info = f'{self.__class__.__name__}, bias={self.bias}'
-        return info
+        return f'{self.__class__.__name__}, bias={self.bias}'
 
 
 @WEIGHT_INITIALIZERS.register_module(name='Constant')
@@ -191,8 +184,7 @@ class ConstantInit(BaseInit):
             update_init_info(module, init_info=self._get_init_info())
 
     def _get_init_info(self):
-        info = f'{self.__class__.__name__}: val={self.val}, bias={self.bias}'
-        return info
+        return f'{self.__class__.__name__}: val={self.val}, bias={self.bias}'
 
 
 @WEIGHT_INITIALIZERS.register_module(name='Xavier')
@@ -236,9 +228,7 @@ class XavierInit(BaseInit):
             update_init_info(module, init_info=self._get_init_info())
 
     def _get_init_info(self):
-        info = f'{self.__class__.__name__}: gain={self.gain}, ' \
-               f'distribution={self.distribution}, bias={self.bias}'
-        return info
+        return f'{self.__class__.__name__}: gain={self.gain}, distribution={self.distribution}, bias={self.bias}'
 
 
 @WEIGHT_INITIALIZERS.register_module(name='Normal')
@@ -278,9 +268,7 @@ class NormalInit(BaseInit):
             update_init_info(module, init_info=self._get_init_info())
 
     def _get_init_info(self):
-        info = f'{self.__class__.__name__}: mean={self.mean},' \
-               f' std={self.std}, bias={self.bias}'
-        return info
+        return f'{self.__class__.__name__}: mean={self.mean}, std={self.std}, bias={self.bias}'
 
 
 @WEIGHT_INITIALIZERS.register_module(name='TruncNormal')
@@ -332,9 +320,7 @@ class TruncNormalInit(BaseInit):
             update_init_info(module, init_info=self._get_init_info())
 
     def _get_init_info(self):
-        info = f'{self.__class__.__name__}: a={self.a}, b={self.b},' \
-               f' mean={self.mean}, std={self.std}, bias={self.bias}'
-        return info
+        return f'{self.__class__.__name__}: a={self.a}, b={self.b}, mean={self.mean}, std={self.std}, bias={self.bias}'
 
 
 @WEIGHT_INITIALIZERS.register_module(name='Uniform')
@@ -375,9 +361,7 @@ class UniformInit(BaseInit):
             update_init_info(module, init_info=self._get_init_info())
 
     def _get_init_info(self):
-        info = f'{self.__class__.__name__}: a={self.a},' \
-               f' b={self.b}, bias={self.bias}'
-        return info
+        return f'{self.__class__.__name__}: a={self.a}, b={self.b}, bias={self.bias}'
 
 
 @WEIGHT_INITIALIZERS.register_module(name='Kaiming')
@@ -439,10 +423,7 @@ class KaimingInit(BaseInit):
             update_init_info(module, init_info=self._get_init_info())
 
     def _get_init_info(self):
-        info = f'{self.__class__.__name__}: a={self.a}, mode={self.mode}, ' \
-               f'nonlinearity={self.nonlinearity}, ' \
-               f'distribution ={self.distribution}, bias={self.bias}'
-        return info
+        return f'{self.__class__.__name__}: a={self.a}, mode={self.mode}, nonlinearity={self.nonlinearity}, distribution ={self.distribution}, bias={self.bias}'
 
 
 @WEIGHT_INITIALIZERS.register_module(name='Caffe2Xavier')
@@ -505,8 +486,7 @@ class PretrainedInit:
             update_init_info(module, init_info=self._get_init_info())
 
     def _get_init_info(self):
-        info = f'{self.__class__.__name__}: load from {self.checkpoint}'
-        return info
+        return f'{self.__class__.__name__}: load from {self.checkpoint}'
 
 
 def _initialize(module, cfg, wholemodule=False):
@@ -612,9 +592,6 @@ def initialize(module, init_cfg):
         if override is not None:
             cp_cfg.pop('layer', None)
             _initialize_override(module, override, cp_cfg)
-        else:
-            # All attributes in module have same initialization.
-            pass
 
 
 def _no_grad_trunc_normal_(tensor: Tensor, mean: float, std: float, a: float,

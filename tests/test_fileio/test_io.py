@@ -121,7 +121,7 @@ def test_get_file_backend():
     assert isinstance(backend, fileio.backends.HTTPBackend)
 
     # test enable_singleton parameter
-    assert len(fileio.io.backend_instances) == 0
+    assert not fileio.io.backend_instances
     backend1 = fileio.get_file_backend(uri=text_path, enable_singleton=True)
     assert isinstance(backend1, fileio.backends.LocalBackend)
     assert len(fileio.io.backend_instances) == 1

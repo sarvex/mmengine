@@ -40,16 +40,14 @@ def _format_size(x: int, sig_figs: int = 3, hide_zero: bool = False) -> str:
         return f'{{:.{sig_figs}f}}'.format(x).rstrip('0').rstrip('.')
 
     if abs(x) > 1e14:
-        return fmt(x / 1e15) + 'P'
+        return f'{fmt(x / 1000000000000000.0)}P'
     if abs(x) > 1e11:
-        return fmt(x / 1e12) + 'T'
+        return f'{fmt(x / 1000000000000.0)}T'
     if abs(x) > 1e8:
-        return fmt(x / 1e9) + 'G'
+        return f'{fmt(x / 1000000000.0)}G'
     if abs(x) > 1e5:
-        return fmt(x / 1e6) + 'M'
-    if abs(x) > 1e2:
-        return fmt(x / 1e3) + 'K'
-    return str(x)
+        return f'{fmt(x / 1000000.0)}M'
+    return f'{fmt(x / 1000.0)}K' if abs(x) > 1e2 else str(x)
 
 
 def _pretty_statistics(statistics: Dict[str, Dict[str, int]],
@@ -69,13 +67,13 @@ def _pretty_statistics(statistics: Dict[str, Dict[str, int]],
     Returns:
         dict[str, dict[str, str]]: the input statistics as pretty strings
     """
-    out_stats = {}
-    for mod, stats in statistics.items():
-        out_stats[mod] = {
+    return {
+        mod: {
             s: _format_size(val, sig_figs, hide_zero)
             for s, val in stats.items()
         }
-    return out_stats
+        for mod, stats in statistics.items()
+    }
 
 
 def _group_by_module(
@@ -168,9 +166,11 @@ def _remove_zero_statistics(
                 keep_stat(mod)
                 trivial_children &= mod not in out_stats
 
-        if ((not all(val == 0 for val in statistics[name].values()))
-                or (name in _force_keep)
-                or (require_trivial_children and not trivial_children)):
+        if (
+            any(val != 0 for val in statistics[name].values())
+            or name in _force_keep
+            or (require_trivial_children and not trivial_children)
+        ):
             out_stats[name] = statistics[name].copy()
 
     keep_stat('')
@@ -262,10 +262,10 @@ def _model_stats_str(model: nn.Module,
             #  `Optional[nn.modules.module.Module]`.
             submod_str = repr_with_statistics(submod, submod_name)
             submod_str = _addindent(submod_str, 2)
-            child_lines.append('(' + key + '): ' + submod_str)
+            child_lines.append(f'({key}): {submod_str}')
         lines = extra_lines + child_lines
 
-        main_str = module._get_name() + '('
+        main_str = f'{module._get_name()}('
         if lines:
             # simple one-liner info, which most builtin Modules will use
             if len(extra_lines) == 1 and not child_lines:
@@ -414,7 +414,7 @@ def _stats_table_format(
                     pretty_mod_name = mod_name
                 row = build_row(pretty_mod_name, curr_stats, indent_lvl)
                 rows.append(row)
-                fill(indent_lvl + 1, mod_name + '.')
+                fill(indent_lvl + 1, f'{mod_name}.')
 
     root_name, curr_stats = _fastforward('', statistics)
     row = build_row(root_name or 'model', curr_stats, indent_lvl=0)

@@ -523,7 +523,7 @@ class LocalBackend(BaseStorageBackend):
         root = dir_path
 
         def _list_dir_or_file(dir_path, list_dir, list_file, suffix,
-                              recursive):
+                                  recursive):
             for entry in os.scandir(dir_path):
                 if not entry.name.startswith('.') and entry.is_file():
                     rel_path = osp.relpath(entry.path, root)
@@ -532,8 +532,7 @@ class LocalBackend(BaseStorageBackend):
                         yield rel_path
                 elif osp.isdir(entry.path):
                     if list_dir:
-                        rel_dir = osp.relpath(entry.path, root)
-                        yield rel_dir
+                        yield osp.relpath(entry.path, root)
                     if recursive:
                         yield from _list_dir_or_file(entry.path, list_dir,
                                                      list_file, suffix,

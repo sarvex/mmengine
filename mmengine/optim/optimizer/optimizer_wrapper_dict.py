@@ -102,10 +102,7 @@ class OptimWrapperDict(OptimWrapper):
     @property
     def param_groups(self):
         """Returns the parameter groups of each OptimWrapper."""
-        param_groups = dict()
-        for key, value in self.optim_wrappers.items():
-            param_groups[key] = value.param_groups
-        return param_groups
+        return {key: value.param_groups for key, value in self.optim_wrappers.items()}
 
     def get_lr(self) -> Dict[str, List[float]]:
         """Get the learning rate of all optimizers.
@@ -113,10 +110,10 @@ class OptimWrapperDict(OptimWrapper):
         Returns:
             Dict[str, List[float]]: Learning rate of all optimizers.
         """
-        lr_dict = dict()
-        for name, optim_wrapper in self.optim_wrappers.items():
-            lr_dict[f'{name}.lr'] = optim_wrapper.get_lr()['lr']
-        return lr_dict
+        return {
+            f'{name}.lr': optim_wrapper.get_lr()['lr']
+            for name, optim_wrapper in self.optim_wrappers.items()
+        }
 
     def get_momentum(self) -> Dict[str, List[float]]:
         """Get the momentum of all optimizers.
@@ -124,11 +121,10 @@ class OptimWrapperDict(OptimWrapper):
         Returns:
             Dict[str, List[float]]: momentum of all optimizers.
         """
-        momentum_dict = dict()
-        for name, optim_wrapper in self.optim_wrappers.items():
-            momentum_dict[f'{name}.momentum'] = optim_wrapper.get_momentum(
-            )['momentum']
-        return momentum_dict
+        return {
+            f'{name}.momentum': optim_wrapper.get_momentum()['momentum']
+            for name, optim_wrapper in self.optim_wrappers.items()
+        }
 
     def state_dict(self) -> dict:
         """Get the state dictionary of all optimizer wrappers.
@@ -137,10 +133,10 @@ class OptimWrapperDict(OptimWrapper):
             dict: Each key-value pair in the dictionary represents the name
             and state dictionary of corresponding :obj:`OptimWrapper`.
         """
-        state_dict = dict()
-        for name, optim_wrapper in self.optim_wrappers.items():
-            state_dict[name] = optim_wrapper.state_dict()
-        return state_dict
+        return {
+            name: optim_wrapper.state_dict()
+            for name, optim_wrapper in self.optim_wrappers.items()
+        }
 
     def load_state_dict(self, state_dict: dict) -> None:
         """Load the state dictionary from the ``state_dict``.

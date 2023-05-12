@@ -42,9 +42,9 @@ class EpochBasedTrainLoop(BaseLoop):
             val_interval: int = 1,
             dynamic_intervals: Optional[List[Tuple[int, int]]] = None) -> None:
         super().__init__(runner, dataloader)
-        self._max_epochs = int(max_epochs)
+        self._max_epochs = max_epochs
         assert self._max_epochs == max_epochs, \
-            f'`max_epochs` should be a integer number, but get {max_epochs}.'
+                f'`max_epochs` should be a integer number, but get {max_epochs}.'
         self._max_iters = self._max_epochs * len(self.dataloader)
         self._epoch = 0
         self._iter = 0
@@ -55,7 +55,7 @@ class EpochBasedTrainLoop(BaseLoop):
         self.stop_training = False
         if hasattr(self.dataloader.dataset, 'metainfo'):
             self.runner.visualizer.dataset_meta = \
-                self.dataloader.dataset.metainfo
+                    self.dataloader.dataset.metainfo
         else:
             print_log(
                 f'Dataset {self.dataloader.dataset.__class__.__name__} has no '
@@ -65,7 +65,7 @@ class EpochBasedTrainLoop(BaseLoop):
                 level=logging.WARNING)
 
         self.dynamic_milestones, self.dynamic_intervals = \
-            calc_dynamic_intervals(
+                calc_dynamic_intervals(
                 self.val_interval, dynamic_intervals)
 
     @property
@@ -217,9 +217,9 @@ class IterBasedTrainLoop(BaseLoop):
             val_interval: int = 1000,
             dynamic_intervals: Optional[List[Tuple[int, int]]] = None) -> None:
         super().__init__(runner, dataloader)
-        self._max_iters = int(max_iters)
+        self._max_iters = max_iters
         assert self._max_iters == max_iters, \
-            f'`max_iters` should be a integer number, but get {max_iters}'
+                f'`max_iters` should be a integer number, but get {max_iters}'
         self._max_epochs = 1  # for compatibility with EpochBasedTrainLoop
         self._epoch = 0
         self._iter = 0
@@ -230,7 +230,7 @@ class IterBasedTrainLoop(BaseLoop):
         self.stop_training = False
         if hasattr(self.dataloader.dataset, 'metainfo'):
             self.runner.visualizer.dataset_meta = \
-                self.dataloader.dataset.metainfo
+                    self.dataloader.dataset.metainfo
         else:
             print_log(
                 f'Dataset {self.dataloader.dataset.__class__.__name__} has no '
@@ -242,7 +242,7 @@ class IterBasedTrainLoop(BaseLoop):
         self.dataloader_iterator = _InfiniteDataloaderIterator(self.dataloader)
 
         self.dynamic_milestones, self.dynamic_intervals = \
-            calc_dynamic_intervals(
+                calc_dynamic_intervals(
                 self.val_interval, dynamic_intervals)
 
     @property
@@ -334,7 +334,7 @@ class ValLoop(BaseLoop):
                  fp16: bool = False) -> None:
         super().__init__(runner, dataloader)
 
-        if isinstance(evaluator, dict) or isinstance(evaluator, list):
+        if isinstance(evaluator, (dict, list)):
             self.evaluator = runner.build_evaluator(evaluator)  # type: ignore
         else:
             assert isinstance(evaluator, Evaluator), (
@@ -344,7 +344,7 @@ class ValLoop(BaseLoop):
         if hasattr(self.dataloader.dataset, 'metainfo'):
             self.evaluator.dataset_meta = self.dataloader.dataset.metainfo
             self.runner.visualizer.dataset_meta = \
-                self.dataloader.dataset.metainfo
+                    self.dataloader.dataset.metainfo
         else:
             print_log(
                 f'Dataset {self.dataloader.dataset.__class__.__name__} has no '
@@ -409,14 +409,14 @@ class TestLoop(BaseLoop):
                  fp16: bool = False):
         super().__init__(runner, dataloader)
 
-        if isinstance(evaluator, dict) or isinstance(evaluator, list):
+        if isinstance(evaluator, (dict, list)):
             self.evaluator = runner.build_evaluator(evaluator)  # type: ignore
         else:
             self.evaluator = evaluator  # type: ignore
         if hasattr(self.dataloader.dataset, 'metainfo'):
             self.evaluator.dataset_meta = self.dataloader.dataset.metainfo
             self.runner.visualizer.dataset_meta = \
-                self.dataloader.dataset.metainfo
+                    self.dataloader.dataset.metainfo
         else:
             print_log(
                 f'Dataset {self.dataloader.dataset.__class__.__name__} has no '

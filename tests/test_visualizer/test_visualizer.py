@@ -116,7 +116,7 @@ class TestVisualizer(TestCase):
                 save_dir='temp_dir')
 
         # test global init
-        instance_name = 'visualizer' + str(time.time())
+        instance_name = f'visualizer{str(time.time())}'
         visualizer = Visualizer.get_instance(
             instance_name,
             vis_backends=copy.deepcopy(self.vis_backend_cfg),

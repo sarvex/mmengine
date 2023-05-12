@@ -65,7 +65,8 @@ class TestLoggerHook(RunnerTestCase):
         # Test LoggerHook by iter.
         runner = MagicMock()
         runner.log_processor.get_log_after_iter = MagicMock(
-            return_value=(dict(), 'log_str'))
+            return_value=({}, 'log_str')
+        )
         logger_hook = LoggerHook()
         logger_hook.after_train_iter(runner, batch_idx=5)
         # `cur_iter=10+1`, which cannot be exact division by
@@ -78,7 +79,8 @@ class TestLoggerHook(RunnerTestCase):
         logger_hook = LoggerHook()
         runner = MagicMock()
         runner.log_processor.get_log_after_iter = MagicMock(
-            return_value=(dict(), 'log_str'))
+            return_value=({}, 'log_str')
+        )
         # Only `batch_idx` will work.
         logger_hook.after_train_iter(runner, batch_idx=10)
         runner.log_processor.get_log_after_iter.assert_not_called()
@@ -88,7 +90,8 @@ class TestLoggerHook(RunnerTestCase):
         # Test end of the epoch.
         runner = MagicMock()
         runner.log_processor.get_log_after_iter = MagicMock(
-            return_value=(dict(), 'log_str'))
+            return_value=({}, 'log_str')
+        )
         logger_hook = LoggerHook(ignore_last=False)
         runner.train_dataloader = [0] * 5
         logger_hook.after_train_iter(runner, batch_idx=4)
@@ -97,7 +100,8 @@ class TestLoggerHook(RunnerTestCase):
         # Test print exp_name
         runner = MagicMock()
         runner.log_processor.get_log_after_iter = MagicMock(
-            return_value=(dict(), 'log_str'))
+            return_value=({}, 'log_str')
+        )
         runner.logger = MagicMock()
         logger_hook = LoggerHook()
         logger_hook.after_train_iter(runner, batch_idx=999)
@@ -178,7 +182,8 @@ class TestLoggerHook(RunnerTestCase):
         runner = MagicMock()
         runner.iter = 0
         runner.log_processor.get_log_after_iter = MagicMock(
-            return_value=(dict(), 'log_str'))
+            return_value=({}, 'log_str')
+        )
         logger_hook.after_val_iter(runner, 1)
         runner.log_processor.get_log_after_iter.assert_not_called()
         logger_hook.after_val_iter(runner, 9)
@@ -189,7 +194,8 @@ class TestLoggerHook(RunnerTestCase):
         runner = MagicMock()
         runner.iter = 0
         runner.log_processor.get_log_after_iter = MagicMock(
-            return_value=(dict(), 'log_str'))
+            return_value=({}, 'log_str')
+        )
         logger_hook.after_test_iter(runner, 1)
         runner.log_processor.get_log_after_iter.assert_not_called()
         logger_hook.after_test_iter(runner, 9)

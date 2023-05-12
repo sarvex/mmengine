@@ -38,8 +38,7 @@ class TmpObject:
             return tmp_objs[0]
         tmp_list = [tmp_obj.tmp for tmp_obj in tmp_objs]
         tmp_list = list(itertools.chain(*tmp_list))
-        new_data = TmpObject(tmp_list)
-        return new_data
+        return TmpObject(tmp_list)
 
     def __repr__(self):
         return str(self.tmp)
@@ -83,7 +82,7 @@ class TestInstanceData(TestCase):
         ids = (1, 2, 3, 4, 5)
         name_ids = '12345'
         polygons = TmpObject(np.arange(25).reshape((5, -1)).tolist())
-        instance_data = InstanceData(
+        return InstanceData(
             metainfo=metainfo,
             bboxes=bboxes,
             labels=labels,
@@ -91,8 +90,8 @@ class TestInstanceData(TestCase):
             kps=kps,
             ids=ids,
             name_ids=name_ids,
-            instances_infos=instances_infos)
-        return instance_data
+            instances_infos=instances_infos,
+        )
 
     def test_set_data(self):
         instance_data = self.setup_data()

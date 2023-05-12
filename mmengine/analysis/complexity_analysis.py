@@ -322,9 +322,7 @@ def parameter_count_table(model: nn.Module, max_depth: int = 3) -> str:
             return f'{x / 1e9:.1f}G'
         if x > 1e5:
             return f'{x / 1e6:.1f}M'
-        if x > 1e2:
-            return f'{x / 1e3:.1f}K'
-        return str(x)
+        return f'{x / 1000.0:.1f}K' if x > 1e2 else str(x)
 
     def fill(lvl: int, prefix: str) -> None:
         if lvl >= max_depth:
@@ -337,7 +335,7 @@ def parameter_count_table(model: nn.Module, max_depth: int = 3) -> str:
                         (indent + name, indent + str(param_shape[name])))
                 else:
                     rows.append((indent + name, indent + format_size(v)))
-                    fill(lvl + 1, name + '.')
+                    fill(lvl + 1, f'{name}.')
 
     rows.append(('model', format_size(count.pop(''))))
     fill(0, '')

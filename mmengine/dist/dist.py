@@ -443,9 +443,9 @@ def _broadcast_object_list(object_list: List[Any],
     if is_nccl_backend or is_hccl_backend or is_cncl_backend:
         object_tensor = object_tensor.to(current_device)
     torch_dist.broadcast(object_tensor, src=src, group=group)
-    # Deserialize objects using their stored sizes.
-    offset = 0
     if my_rank != src:
+        # Deserialize objects using their stored sizes.
+        offset = 0
         for i, obj_size in enumerate(object_sizes_tensor):
             obj_view = object_tensor[offset:offset + obj_size]
             obj_view = obj_view.type(torch.uint8)
@@ -924,11 +924,10 @@ def collect_results(results: list,
         raise NotImplementedError(
             f"device must be 'cpu' or 'gpu', but got {device}")
 
-    if device == 'gpu':
-        assert tmpdir is None, 'tmpdir should be None when device is "gpu"'
-        return collect_results_gpu(results, size)
-    else:
+    if device != 'gpu':
         return collect_results_cpu(results, size, tmpdir)
+    assert tmpdir is None, 'tmpdir should be None when device is "gpu"'
+    return collect_results_gpu(results, size)
 
 
 def collect_results_cpu(result_part: list,
@@ -992,30 +991,26 @@ def collect_results_cpu(result_part: list,
 
     barrier()
 
-    # collect all parts
     if rank != 0:
         return None
-    else:
-        # load results of all parts from tmp dir
-        part_list = []
-        for i in range(world_size):
-            path = osp.join(tmpdir, f'part_{i}.pkl')  # type: ignore
-            if not osp.exists(path):
-                raise FileNotFoundError(
-                    f'{tmpdir} is not an shared directory for '
-                    f'rank {i}, please make sure {tmpdir} is a shared '
-                    'directory for all ranks!')
-            with open(path, 'rb') as f:
-                part_list.append(pickle.load(f))
-        # sort the results
-        ordered_results = []
-        for res in zip(*part_list):
-            ordered_results.extend(list(res))
-        # the dataloader may pad some samples
-        ordered_results = ordered_results[:size]
-        # remove tmp dir
-        shutil.rmtree(tmpdir)  # type: ignore
-        return ordered_results
+    # load results of all parts from tmp dir
+    part_list = []
+    for i in range(world_size):
+        path = osp.join(tmpdir, f'part_{i}.pkl')  # type: ignore
+        if not osp.exists(path):
+            raise FileNotFoundError(
+                f'{tmpdir} is not an shared directory for '
+                f'rank {i}, please make sure {tmpdir} is a shared '
+                'directory for all ranks!')
+        with open(path, 'rb') as f:
+            part_list.append(pickle.load(f))
+    # sort the results
+    ordered_results = []
+    for res in zip(*part_list):
+        ordered_results.extend(list(res))
+    # remove tmp dir
+    shutil.rmtree(tmpdir)  # type: ignore
+    return ordered_results[:size]
 
 
 def collect_results_gpu(result_part: list, size: int) -> Optional[list]:
@@ -1056,16 +1051,13 @@ def collect_results_gpu(result_part: list, size: int) -> Optional[list]:
     # all_gather_object instead.
     part_list = all_gather_object(result_part)
 
-    if rank == 0:
-        # sort the results
-        ordered_results = []
-        for res in zip(*part_list):
-            ordered_results.extend(list(res))
-        # the dataloader may pad some samples
-        ordered_results = ordered_results[:size]
-        return ordered_results
-    else:
+    if rank != 0:
         return None
+    # sort the results
+    ordered_results = []
+    for res in zip(*part_list):
+        ordered_results.extend(list(res))
+    return ordered_results[:size]
 
 
 def _all_reduce_coalesced(tensors: List[torch.Tensor],

@@ -29,13 +29,11 @@ class ToyModel(BaseModel):
         inputs = torch.stack(inputs)
         outputs = self.linear(inputs)
         if mode == 'tensor':
-            return outputs
+            pass
         elif mode == 'loss':
             loss = (labels - outputs).sum()
             outputs = dict(loss=loss)
-            return outputs
-        else:
-            return outputs
+        return outputs
 
 
 class DummyDataset(Dataset):
@@ -237,19 +235,20 @@ class TestEarlyStoppingHook(RunnerTestCase):
                 dataset=DummyDataset(),
                 sampler=dict(type='DefaultSampler', shuffle=True),
                 batch_size=3,
-                num_workers=0),
+                num_workers=0,
+            ),
             val_dataloader=dict(
                 dataset=DummyDataset(),
                 sampler=dict(type='DefaultSampler', shuffle=False),
                 batch_size=3,
-                num_workers=0),
+                num_workers=0,
+            ),
             val_evaluator=dict(type=DummyMetric, length=max_epoch),
-            optim_wrapper=OptimWrapper(
-                torch.optim.Adam(ToyModel().parameters())),
-            train_cfg=dict(
-                by_epoch=True, max_epochs=max_epoch, val_interval=1),
-            val_cfg=dict(),
+            optim_wrapper=OptimWrapper(torch.optim.Adam(ToyModel().parameters())),
+            train_cfg=dict(by_epoch=True, max_epochs=max_epoch, val_interval=1),
+            val_cfg={},
             custom_hooks=[early_stop_cfg],
-            experiment_name='earlystop_test')
+            experiment_name='earlystop_test',
+        )
         runner.train()
         self.assertEqual(runner.epoch, 6)

@@ -106,7 +106,7 @@ class TestDist(TestCase):
             data = [
                 torch.tensor([0, 1], dtype=tensor_type) for _ in range(100)
             ]
-            data_gen = (item for item in data)
+            data_gen = iter(data)
             expected = [
                 torch.tensor([0, 1], dtype=tensor_type) for _ in range(100)
             ]
@@ -151,11 +151,7 @@ class TestDistWithGLOOBackend(MultiProcessTestCase):
 
     def test_all_gather(self):
         self._init_dist_env(self.rank, self.world_size)
-        if dist.get_rank() == 0:
-            data = torch.tensor([0, 1])
-        else:
-            data = torch.tensor([1, 2])
-
+        data = torch.tensor([0, 1]) if dist.get_rank() == 0 else torch.tensor([1, 2])
         expected = [torch.tensor([0, 1]), torch.tensor([1, 2])]
 
         output = dist.all_gather(data)
@@ -164,11 +160,7 @@ class TestDistWithGLOOBackend(MultiProcessTestCase):
 
     def test_gather(self):
         self._init_dist_env(self.rank, self.world_size)
-        if dist.get_rank() == 0:
-            data = torch.tensor([0, 1])
-        else:
-            data = torch.tensor([1, 2])
-
+        data = torch.tensor([0, 1]) if dist.get_rank() == 0 else torch.tensor([1, 2])
         output = dist.gather(data)
 
         if dist.get_rank() == 0:
@@ -180,11 +172,7 @@ class TestDistWithGLOOBackend(MultiProcessTestCase):
 
     def test_broadcast_dist(self):
         self._init_dist_env(self.rank, self.world_size)
-        if dist.get_rank() == 0:
-            data = torch.tensor([0, 1])
-        else:
-            data = torch.tensor([1, 2])
-
+        data = torch.tensor([0, 1]) if dist.get_rank() == 0 else torch.tensor([1, 2])
         expected = torch.tensor([0, 1])
         dist.broadcast(data, 0)
         assert torch.allclose(data, expected)
@@ -200,11 +188,7 @@ class TestDistWithGLOOBackend(MultiProcessTestCase):
 
     def test_broadcast_object_list(self):
         self._init_dist_env(self.rank, self.world_size)
-        if dist.get_rank() == 0:
-            data = ['foo', 12, {1: 2}]
-        else:
-            data = [None, None, None]
-
+        data = ['foo', 12, {1: 2}] if dist.get_rank() == 0 else [None, None, None]
         expected = ['foo', 12, {1: 2}]
         dist.broadcast_object_list(data)
         self.assertEqual(data, expected)
@@ -268,22 +252,14 @@ class TestDistWithGLOOBackend(MultiProcessTestCase):
         self._init_dist_env(self.rank, self.world_size)
 
         # data is a pickable python object
-        if dist.get_rank() == 0:
-            data = 'foo'
-        else:
-            data = {1: 2}
-
+        data = 'foo' if dist.get_rank() == 0 else {1: 2}
         expected = ['foo', {1: 2}]
         output = dist.all_gather_object(data)
 
         self.assertEqual(output, expected)
 
         # data is a list of pickable python object
-        if dist.get_rank() == 0:
-            data = ['foo', {1: 2}]
-        else:
-            data = {2: 3}
-
+        data = ['foo', {1: 2}] if dist.get_rank() == 0 else {2: 3}
         expected = [['foo', {1: 2}], {2: 3}]
         output = dist.all_gather_object(data)
 
@@ -293,11 +269,7 @@ class TestDistWithGLOOBackend(MultiProcessTestCase):
         self._init_dist_env(self.rank, self.world_size)
 
         # data is a pickable python object
-        if dist.get_rank() == 0:
-            data = 'foo'
-        else:
-            data = {1: 2}
-
+        data = 'foo' if dist.get_rank() == 0 else {1: 2}
         output = dist.gather_object(data, dst=0)
 
         if dist.get_rank() == 0:
@@ -306,11 +278,7 @@ class TestDistWithGLOOBackend(MultiProcessTestCase):
             self.assertIsNone(output)
 
         # data is a list of pickable python object
-        if dist.get_rank() == 0:
-            data = ['foo', {1: 2}]
-        else:
-            data = {2: 3}
-
+        data = ['foo', {1: 2}] if dist.get_rank() == 0 else {2: 3}
         output = dist.gather_object(data, dst=0)
 
         if dist.get_rank() == 0:
@@ -335,7 +303,7 @@ class TestDistWithGLOOBackend(MultiProcessTestCase):
                     torch.tensor([2, 3], dtype=tensor_type)
                     for _ in range(100))
 
-            data_gen = (item for item in data)
+            data_gen = iter(data)
 
             if reduce_op == 'sum':
                 expected = (
@@ -438,11 +406,7 @@ class TestDistWithNCCLBackend(MultiProcessTestCase):
 
     def test_broadcast_object_list(self):
         self._init_dist_env(self.rank, self.world_size)
-        if dist.get_rank() == 0:
-            data = ['foo', 12, {1: 2}]
-        else:
-            data = [None, None, None]
-
+        data = ['foo', 12, {1: 2}] if dist.get_rank() == 0 else [None, None, None]
         expected = ['foo', 12, {1: 2}]
         dist.broadcast_object_list(data)
         self.assertEqual(data, expected)
@@ -532,22 +496,14 @@ class TestDistWithNCCLBackend(MultiProcessTestCase):
         self._init_dist_env(self.rank, self.world_size)
 
         # data is a pickable python object
-        if dist.get_rank() == 0:
-            data = 'foo'
-        else:
-            data = {1: 2}
-
+        data = 'foo' if dist.get_rank() == 0 else {1: 2}
         expected = ['foo', {1: 2}]
         output = dist.all_gather_object(data)
 
         self.assertEqual(output, expected)
 
         # data is a list of pickable python object
-        if dist.get_rank() == 0:
-            data = ['foo', {1: 2}]
-        else:
-            data = {2: 3}
-
+        data = ['foo', {1: 2}] if dist.get_rank() == 0 else {2: 3}
         expected = [['foo', {1: 2}], {2: 3}]
         output = dist.all_gather_object(data)
 
@@ -557,11 +513,7 @@ class TestDistWithNCCLBackend(MultiProcessTestCase):
         self._init_dist_env(self.rank, self.world_size)
 
         # 1. test `device` and `tmpdir` parameters
-        if dist.get_rank() == 0:
-            data = ['foo', {1: 2}]
-        else:
-            data = [24, {'a': 'b'}]
-
+        data = ['foo', {1: 2}] if dist.get_rank() == 0 else [24, {'a': 'b'}]
         size = 4
 
         expected = ['foo', 24, {1: 2}, {'a': 'b'}]
@@ -597,11 +549,7 @@ class TestDistWithNCCLBackend(MultiProcessTestCase):
             self.assertIsNone(output)
 
         # 2. test `size` parameter
-        if dist.get_rank() == 0:
-            data = ['foo', {1: 2}]
-        else:
-            data = [24, {'a': 'b'}]
-
+        data = ['foo', {1: 2}] if dist.get_rank() == 0 else [24, {'a': 'b'}]
         size = 3
 
         expected = ['foo', 24, {1: 2}]
@@ -640,7 +588,7 @@ class TestDistWithNCCLBackend(MultiProcessTestCase):
                     for _ in range(100)
                 ]
 
-            data_gen = (item for item in data)
+            data_gen = iter(data)
             dist.all_reduce_params(data_gen, coalesce=coalesce, op=reduce_op)
 
             if reduce_op == 'sum':

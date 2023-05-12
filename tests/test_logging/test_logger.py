@@ -86,8 +86,9 @@ class TestLogger:
         # Skip match colored INFO
         loglevl_name = logging._levelToName[log_level]
         match = re.fullmatch(
-            self.stream_handler_regex_time + f' - mmengine - '
-            f'(.*){loglevl_name}(.*) - welcome\n', out)
+            f'{self.stream_handler_regex_time} - mmengine - (.*){loglevl_name}(.*) - welcome\n',
+            out,
+        )
         assert match is not None
 
         # test file_handler output plain text without color.

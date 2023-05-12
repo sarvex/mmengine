@@ -151,13 +151,12 @@ class FileClient:
         uri = str(uri)
         if '://' not in uri:
             return None
-        else:
-            prefix, _ = uri.split('://')
-            # In the case of PetrelBackend, the prefix may contains the cluster
-            # name like clusterName:s3
-            if ':' in prefix:
-                _, prefix = prefix.split(':')
-            return prefix
+        prefix, _ = uri.split('://')
+        # In the case of PetrelBackend, the prefix may contains the cluster
+        # name like clusterName:s3
+        if ':' in prefix:
+            _, prefix = prefix.split(':')
+        return prefix
 
     @classmethod
     def infer_client(cls,
@@ -181,11 +180,10 @@ class FileClient:
             FileClient: Instantiated FileClient object.
         """
         assert file_client_args is not None or uri is not None
-        if file_client_args is None:
-            file_prefix = cls.parse_uri_prefix(uri)  # type: ignore
-            return cls(prefix=file_prefix)
-        else:
+        if file_client_args is not None:
             return cls(**file_client_args)
+        file_prefix = cls.parse_uri_prefix(uri)  # type: ignore
+        return cls(prefix=file_prefix)
 
     @classmethod
     def _register_backend(cls, name, backend, force=False, prefixes=None):
@@ -203,7 +201,7 @@ class FileClient:
                 f'{name} is already registered as a storage backend, '
                 'add "force=True" if you want to override it')
 
-        if name in cls._backends and force:
+        if name in cls._backends:
             for arg_key, instance in list(cls._instances.items()):
                 if isinstance(instance.client, cls._backends[name]):
                     cls._instances.pop(arg_key)
@@ -217,7 +215,7 @@ class FileClient:
             for prefix in prefixes:
                 if prefix not in cls._prefix_to_backends:
                     cls._prefix_to_backends[prefix] = backend
-                elif (prefix in cls._prefix_to_backends) and force:
+                elif force:
                     overridden_backend = cls._prefix_to_backends[prefix]
                     for arg_key, instance in list(cls._instances.items()):
                         if isinstance(instance.client, overridden_backend):

@@ -191,8 +191,7 @@ class TestConfig:
         sys.argv.extend(tmp)
 
     def test_dict_to_config_dict(self):
-        cfg_dict = dict(
-            a=1, b=dict(c=dict()), d=[dict(e=dict(f=(dict(g=1), [])))])
+        cfg_dict = dict(a=1, b=dict(c={}), d=[dict(e=dict(f=(dict(g=1), [])))])
         cfg_dict = Config._dict_to_config_dict(cfg_dict)
         assert isinstance(cfg_dict, ConfigDict)
         assert isinstance(cfg_dict.a, int)

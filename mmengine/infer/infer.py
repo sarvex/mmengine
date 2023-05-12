@@ -218,9 +218,9 @@ class BaseInferencer(metaclass=InferencerMeta):
         visualization = self.visualize(
             ori_inputs, preds,
             **visualize_kwargs)  # type: ignore  # noqa: E501
-        results = self.postprocess(preds, visualization, return_datasamples,
-                                   **postprocess_kwargs)
-        return results
+        return self.postprocess(
+            preds, visualization, return_datasamples, **postprocess_kwargs
+        )
 
     def _inputs_to_list(self, inputs: InputsType) -> list:
         """Preprocess the inputs to a list.
@@ -404,26 +404,23 @@ class BaseInferencer(metaclass=InferencerMeta):
                 raise KeyError(
                     f'{scope} is not a valid scope. The available scopes '
                     f'are {MODULE2PACKAGE.keys()}')
-            else:
-                project = MODULE2PACKAGE[scope]
-                raise ImportError(
-                    f'Cannot import {scope} correctly, please try to install '
-                    f'the {project} by "pip install {project}"')
+            project = MODULE2PACKAGE[scope]
+            raise ImportError(
+                f'Cannot import {scope} correctly, please try to install '
+                f'the {project} by "pip install {project}"')
         # Since none of OpenMMLab series packages are namespace packages
         # (https://docs.python.org/3/glossary.html#term-namespace-package),
         # The first element of module.__path__ means package installation path.
         package_path = module.__path__[0]
 
         if osp.exists(osp.join(osp.dirname(package_path), 'configs')):
-            repo_dir = osp.dirname(package_path)
-            return repo_dir
-        else:
-            mim_dir = osp.join(package_path, '.mim')
-            if not osp.exists(osp.join(mim_dir, 'configs')):
-                raise FileNotFoundError(
-                    f'Cannot find `configs` directory in {package_path}!, '
-                    f'please check the completeness of the {scope}.')
-            return mim_dir
+            return osp.dirname(package_path)
+        mim_dir = osp.join(package_path, '.mim')
+        if not osp.exists(osp.join(mim_dir, 'configs')):
+            raise FileNotFoundError(
+                f'Cannot find `configs` directory in {package_path}!, '
+                f'please check the completeness of the {scope}.')
+        return mim_dir
 
     def _init_model(
         self,
@@ -676,11 +673,9 @@ class BaseInferencer(metaclass=InferencerMeta):
                 root_or_mim_dir):
             model_name = [model_cfg['Name']]
             model_name.extend(model_cfg.get('Alias', []))
-            for name in model_name:
-                if re.match(patterns, name) is not None:
-                    matched_models.append(name)
-        output_str = ''
-        for name in matched_models:
-            output_str += f'model_name: {name}\n'
+            matched_models.extend(
+                name for name in model_name if re.match(patterns, name) is not None
+            )
+        output_str = ''.join(f'model_name: {name}\n' for name in matched_models)
         print_log(output_str, logger='current')
         return matched_models

@@ -158,9 +158,7 @@ def _init_dist_slurm(backend, port=None) -> None:
     # specify master port
     if port is not None:
         os.environ['MASTER_PORT'] = str(port)
-    elif 'MASTER_PORT' in os.environ:
-        pass  # use MASTER_PORT in the environment variable
-    else:
+    elif 'MASTER_PORT' not in os.environ:
         # 29500 is torch.distributed default port
         os.environ['MASTER_PORT'] = '29500'
     # use MASTER_ADDR in the environment variable if it already exists
@@ -212,14 +210,13 @@ def get_backend(group: Optional[ProcessGroup] = None) -> Optional[str]:
         str or None: Return the backend of the given process group as a lower
         case string if in distributed environment, otherwise None.
     """
-    if is_distributed():
-        # handle low versions of torch like 1.5.0 which does not support
-        # passing in None for group argument
-        if group is None:
-            group = get_default_group()
-        return torch_dist.get_backend(group)
-    else:
+    if not is_distributed():
         return None
+    # handle low versions of torch like 1.5.0 which does not support
+    # passing in None for group argument
+    if group is None:
+        group = get_default_group()
+    return torch_dist.get_backend(group)
 
 
 def get_world_size(group: Optional[ProcessGroup] = None) -> int:
@@ -237,14 +234,13 @@ def get_world_size(group: Optional[ProcessGroup] = None) -> int:
         int: Return the number of processes of the given process group if in
         distributed environment, otherwise 1.
     """
-    if is_distributed():
-        # handle low versions of torch like 1.5.0 which does not support
-        # passing in None for group argument
-        if group is None:
-            group = get_default_group()
-        return torch_dist.get_world_size(group)
-    else:
+    if not is_distributed():
         return 1
+    # handle low versions of torch like 1.5.0 which does not support
+    # passing in None for group argument
+    if group is None:
+        group = get_default_group()
+    return torch_dist.get_world_size(group)
 
 
 def get_rank(group: Optional[ProcessGroup] = None) -> int:
@@ -266,14 +262,13 @@ def get_rank(group: Optional[ProcessGroup] = None) -> int:
         environment, otherwise 0.
     """
 
-    if is_distributed():
-        # handle low versions of torch like 1.5.0 which does not support
-        # passing in None for group argument
-        if group is None:
-            group = get_default_group()
-        return torch_dist.get_rank(group)
-    else:
+    if not is_distributed():
         return 0
+    # handle low versions of torch like 1.5.0 which does not support
+    # passing in None for group argument
+    if group is None:
+        group = get_default_group()
+    return torch_dist.get_rank(group)
 
 
 def get_local_size() -> int:
@@ -422,11 +417,10 @@ def get_data_device(data: Union[Tensor, Mapping, Iterable]) -> torch.device:
             cur = get_data_device(v)
             if pre is None:
                 pre = cur
-            else:
-                if cur != pre:
-                    raise ValueError(
-                        'device type in data should be consistent, but got '
-                        f'{cur} and {pre}')
+            elif cur != pre:
+                raise ValueError(
+                    'device type in data should be consistent, but got '
+                    f'{cur} and {pre}')
         if pre is None:
             raise ValueError('data should not be empty.')
         return pre
@@ -436,11 +430,10 @@ def get_data_device(data: Union[Tensor, Mapping, Iterable]) -> torch.device:
             cur = get_data_device(item)
             if pre is None:
                 pre = cur
-            else:
-                if cur != pre:
-                    raise ValueError(
-                        'device type in data should be consistent, but got '
-                        f'{cur} and {pre}')
+            elif cur != pre:
+                raise ValueError(
+                    'device type in data should be consistent, but got '
+                    f'{cur} and {pre}')
         if pre is None:
             raise ValueError('data should not be empty.')
         return pre
@@ -462,13 +455,15 @@ def get_comm_device(group: Optional[ProcessGroup] = None) -> torch.device:
     if backend == 'hccl':
         import torch_npu  # noqa: F401
         return torch.device('npu', torch.npu.current_device())
-    elif backend == torch_dist.Backend.NCCL:
+    elif (
+        backend == torch_dist.Backend.NCCL
+        or backend != 'cncl'
+        and backend == 'smddp'
+    ):
         return torch.device('cuda', torch.cuda.current_device())
     elif backend == 'cncl':
         import torch_mlu  # noqa: F401
         return torch.device('mlu', torch.mlu.current_device())
-    elif backend == 'smddp':
-        return torch.device('cuda', torch.cuda.current_device())
     else:
         # GLOO and MPI backends use cpu device by default
         return torch.device('cpu')
@@ -502,11 +497,7 @@ def cast_data_device(
             raise TypeError('out should not be a set')
 
     if isinstance(data, Tensor):
-        if get_data_device(data) == device:
-            data_on_device = data
-        else:
-            data_on_device = data.to(device)
-
+        data_on_device = data if get_data_device(data) == device else data.to(device)
         if out is not None:
             # modify the value of out inplace
             out.copy_(data_on_device)  # type: ignore
@@ -528,7 +519,7 @@ def cast_data_device(
             for k, v in data.items():
                 data_on_device[k] = cast_data_device(v, device)
 
-        if len(data_on_device) == 0:
+        if not data_on_device:
             raise ValueError('data should not be empty')
 
         # To ensure the type of output as same as input, we use `type(data)`
@@ -538,13 +529,12 @@ def cast_data_device(
             data, str) and not isinstance(data, np.ndarray):
         data_on_device = []
         if out is not None:
-            for v1, v2 in zip(data, out):
-                data_on_device.append(cast_data_device(v1, device, v2))
+            data_on_device.extend(
+                cast_data_device(v1, device, v2) for v1, v2 in zip(data, out)
+            )
         else:
-            for v in data:
-                data_on_device.append(cast_data_device(v, device))
-
-        if len(data_on_device) == 0:
+            data_on_device.extend(cast_data_device(v, device) for v in data)
+        if not data_on_device:
             raise ValueError('data should not be empty')
 
         return type(data)(data_on_device)  # type: ignore

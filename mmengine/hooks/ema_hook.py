@@ -47,8 +47,9 @@ class EMAHook(Hook):
                  **kwargs):
         self.strict_load = strict_load
         self.ema_cfg = dict(type=ema_type, **kwargs)
-        assert not (begin_iter != 0 and begin_epoch != 0), (
-            '`begin_iter` and `begin_epoch` should not be both set.')
+        assert (
+            begin_iter == 0 or begin_epoch == 0
+        ), '`begin_iter` and `begin_epoch` should not be both set.'
         assert begin_iter >= 0, (
             '`begin_iter` must larger than or equal to 0, '
             f'but got begin_iter: {begin_iter}')

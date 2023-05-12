@@ -13,8 +13,7 @@ def is_rocm_pytorch() -> bool:
     if TORCH_VERSION != 'parrots':
         try:
             from torch.utils.cpp_extension import ROCM_HOME
-            is_rocm = True if ((torch.version.hip is not None) and
-                               (ROCM_HOME is not None)) else False
+            is_rocm = torch.version.hip is not None and ROCM_HOME is not None
         except ImportError:
             pass
     return is_rocm
@@ -24,22 +23,20 @@ def _get_cuda_home() -> Optional[str]:
     """Obtain the path of CUDA home."""
     if TORCH_VERSION == 'parrots':
         from parrots.utils.build_extension import CUDA_HOME
+    elif is_rocm_pytorch():
+        from torch.utils.cpp_extension import ROCM_HOME
+        CUDA_HOME = ROCM_HOME
     else:
-        if is_rocm_pytorch():
-            from torch.utils.cpp_extension import ROCM_HOME
-            CUDA_HOME = ROCM_HOME
-        else:
-            from torch.utils.cpp_extension import CUDA_HOME
+        from torch.utils.cpp_extension import CUDA_HOME
     return CUDA_HOME
 
 
 def get_build_config():
     """Obtain the build information of PyTorch or Parrots."""
-    if TORCH_VERSION == 'parrots':
-        from parrots.config import get_build_info
-        return get_build_info()
-    else:
+    if TORCH_VERSION != 'parrots':
         return torch.__config__.show()
+    from parrots.config import get_build_info
+    return get_build_info()
 
 
 def _get_conv() -> tuple:

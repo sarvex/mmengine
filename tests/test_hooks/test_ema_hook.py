@@ -272,7 +272,7 @@ class TestEMAHook(RunnerTestCase):
             osp.join(self.temp_dir.name, 'epoch_4.pth'), map_location='cpu')
         self.assertIn('ema_state_dict', state_dict)
         for k, v in state_dict['state_dict'].items():
-            assert_allclose(v, state_dict['ema_state_dict']['module.' + k])
+            assert_allclose(v, state_dict['ema_state_dict'][f'module.{k}'])
 
         # Test enable ema at 5 iterations.
         cfg = copy.deepcopy(self.iter_based_cfg)
@@ -285,7 +285,7 @@ class TestEMAHook(RunnerTestCase):
             osp.join(self.temp_dir.name, 'iter_4.pth'), map_location='cpu')
         self.assertIn('ema_state_dict', state_dict)
         for k, v in state_dict['state_dict'].items():
-            assert_allclose(v, state_dict['ema_state_dict']['module.' + k])
+            assert_allclose(v, state_dict['ema_state_dict'][f'module.{k}'])
         state_dict = torch.load(
             osp.join(self.temp_dir.name, 'iter_5.pth'), map_location='cpu')
         self.assertIn('ema_state_dict', state_dict)

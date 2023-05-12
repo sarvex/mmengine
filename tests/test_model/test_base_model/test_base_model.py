@@ -30,10 +30,7 @@ def list_product(*args):
 class CustomDataPreprocessor(BaseDataPreprocessor):
 
     def forward(self, data, training=False):
-        if training:
-            return 1
-        else:
-            return 2
+        return 1 if training else 2
 
 
 class ToyModel(BaseModel):
@@ -46,12 +43,8 @@ class ToyModel(BaseModel):
         if mode == 'loss':
             out = self.conv(inputs)
             return dict(loss=out)
-        elif mode == 'predict':
-            out = self.conv(inputs)
-            return out
-        elif mode == 'tensor':
-            out = self.conv(inputs)
-            return out
+        elif mode in ['predict', 'tensor']:
+            return self.conv(inputs)
 
 
 class NestedModel(BaseModel):
@@ -105,7 +98,7 @@ class TestBaseModel(TestCase):
             assert_allclose(log_vars[key], targe_log_vars[key])
 
         with self.assertRaises(TypeError):
-            losses['error_key'] = dict()
+            losses['error_key'] = {}
             model.parse_losses(losses)
 
     def test_train_step(self):

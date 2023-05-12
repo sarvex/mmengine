@@ -76,13 +76,11 @@ class ToyModel(BaseModel):
         outputs = self.linear1(inputs)
         outputs = self.linear2(outputs)
 
-        if mode == 'tensor':
+        if mode == 'tensor' or mode != 'loss' and mode == 'predict':
             return outputs
         elif mode == 'loss':
             loss = (data_sample - outputs).sum()
             outputs = dict(loss=loss)
-            return outputs
-        elif mode == 'predict':
             return outputs
 
 
@@ -129,15 +127,12 @@ class ToyGANModel(BaseModel):
         output1 = self.linear1(inputs)
         output2 = self.linear2(inputs)
 
-        if mode == 'tensor':
+        if mode == 'tensor' or mode != 'loss' and mode == 'predict':
             return output1, output2
         elif mode == 'loss':
             loss1 = (data_sample - output1).sum()
             loss2 = (data_sample - output2).sum()
-            outputs = dict(linear1=loss1, linear2=loss2)
-            return outputs
-        elif mode == 'predict':
-            return output1, output2
+            return dict(linear1=loss1, linear2=loss2)
 
     def train_step(self, data, optim_wrapper):
         data = self.data_preprocessor(data)
@@ -392,36 +387,41 @@ class TestRunner(TestCase):
                 dataset=dict(type='ToyDataset'),
                 sampler=dict(type='DefaultSampler', shuffle=True),
                 batch_size=3,
-                num_workers=0),
+                num_workers=0,
+            ),
             val_dataloader=dict(
                 dataset=dict(type='ToyDataset'),
                 sampler=dict(type='DefaultSampler', shuffle=False),
                 batch_size=3,
-                num_workers=0),
+                num_workers=0,
+            ),
             test_dataloader=dict(
                 dataset=dict(type='ToyDataset'),
                 sampler=dict(type='DefaultSampler', shuffle=False),
                 batch_size=3,
-                num_workers=0),
+                num_workers=0,
+            ),
             auto_scale_lr=dict(base_batch_size=16, enable=False),
             optim_wrapper=dict(
-                type='OptimWrapper', optimizer=dict(type='SGD', lr=0.01)),
+                type='OptimWrapper', optimizer=dict(type='SGD', lr=0.01)
+            ),
             param_scheduler=dict(type='MultiStepLR', milestones=[1, 2]),
             val_evaluator=dict(type='ToyMetric1'),
             test_evaluator=dict(type='ToyMetric1'),
             train_cfg=dict(
-                by_epoch=True, max_epochs=3, val_interval=1, val_begin=1),
-            val_cfg=dict(),
-            test_cfg=dict(),
+                by_epoch=True, max_epochs=3, val_interval=1, val_begin=1
+            ),
+            val_cfg={},
+            test_cfg={},
             custom_hooks=[],
             default_hooks=dict(
                 runtime_info=dict(type='RuntimeInfoHook'),
                 timer=dict(type='IterTimerHook'),
                 logger=dict(type='LoggerHook'),
                 param_scheduler=dict(type='ParamSchedulerHook'),
-                checkpoint=dict(
-                    type='CheckpointHook', interval=1, by_epoch=True),
-                sampler_seed=dict(type='DistSamplerSeedHook')),
+                checkpoint=dict(type='CheckpointHook', interval=1, by_epoch=True),
+                sampler_seed=dict(type='DistSamplerSeedHook'),
+            ),
             data_preprocessor=None,
             launcher='none',
             env_cfg=dict(dist_cfg=dict(backend='nccl')),
@@ -623,19 +623,21 @@ class TestRunner(TestCase):
             model=model,
             work_dir=self.temp_dir,
             train_cfg=dict(
-                by_epoch=True, max_epochs=3, val_interval=1, val_begin=1),
+                by_epoch=True, max_epochs=3, val_interval=1, val_begin=1
+            ),
             train_dataloader=train_dataloader,
             optim_wrapper=optim_wrapper,
             param_scheduler=MultiStepLR(optim_wrapper, milestones=[1, 2]),
-            val_cfg=dict(),
+            val_cfg={},
             val_dataloader=val_dataloader,
             val_evaluator=[ToyMetric1()],
-            test_cfg=dict(),
+            test_cfg={},
             test_dataloader=test_dataloader,
             test_evaluator=[ToyMetric1()],
             default_hooks=dict(param_scheduler=toy_hook),
             custom_hooks=[toy_hook2],
-            experiment_name='test_init14')
+            experiment_name='test_init14',
+        )
         runner.train()
         runner.test()
 
@@ -795,7 +797,7 @@ class TestRunner(TestCase):
 
         # input is a dict but does not contain name key
         runner._experiment_name = 'test_build_message_hub3'
-        message_hub_cfg = dict()
+        message_hub_cfg = {}
         message_hub = runner.build_message_hub(message_hub_cfg)
         self.assertIsInstance(message_hub, MessageHub)
         self.assertEqual(message_hub.instance_name, 'test_build_message_hub3')
@@ -1324,7 +1326,7 @@ class TestRunner(TestCase):
         self.assertIsInstance(loop, ValLoop)
 
         # input is a dict but does not contain type key
-        cfg = dict()
+        cfg = {}
         loop = runner.build_val_loop(cfg)
         self.assertIsInstance(loop, ValLoop)
 
@@ -1351,7 +1353,7 @@ class TestRunner(TestCase):
         self.assertIsInstance(loop, TestLoop)
 
         # input is a dict but does not contain type key
-        cfg = dict()
+        cfg = {}
         loop = runner.build_test_loop(cfg)
         self.assertIsInstance(loop, TestLoop)
 
@@ -1378,7 +1380,7 @@ class TestRunner(TestCase):
         self.assertIsInstance(log_processor, LogProcessor)
 
         # input is a dict but does not contain type key
-        cfg = dict()
+        cfg = {}
         log_processor = runner.build_log_processor(cfg)
         self.assertIsInstance(log_processor, LogProcessor)
 

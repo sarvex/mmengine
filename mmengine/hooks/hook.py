@@ -418,11 +418,11 @@ class Hook:
         Returns:
             list: List of triggered stages.
         """
-        trigger_stages = set()
-        for stage in Hook.stages:
-            if is_method_overridden(stage, Hook, self):
-                trigger_stages.add(stage)
-
+        trigger_stages = {
+            stage
+            for stage in Hook.stages
+            if is_method_overridden(stage, Hook, self)
+        }
         # some methods will be triggered in multi stages
         # use this dict to map method to stages.
         method_stages_map = {

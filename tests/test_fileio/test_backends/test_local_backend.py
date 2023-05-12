@@ -18,8 +18,7 @@ from mmengine.fileio.backends import LocalBackend
 
 def imfrombytes(content):
     img_np = np.frombuffer(content, np.uint8)
-    img = cv2.imdecode(img_np, cv2.IMREAD_COLOR)
-    return img
+    return cv2.imdecode(img_np, cv2.IMREAD_COLOR)
 
 
 @contextmanager

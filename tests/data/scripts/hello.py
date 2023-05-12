@@ -9,9 +9,7 @@ def parse_args():
     parser = argparse.ArgumentParser(description='Say hello.')
     parser.add_argument('name', help='To whom.')
 
-    args = parser.parse_args()
-
-    return args
+    return parser.parse_args()
 
 
 def main():

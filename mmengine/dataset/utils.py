@@ -74,7 +74,7 @@ def pseudo_collate(data_batch: Sequence) -> Any:
         # consistent size
         it = iter(data_batch)
         data_item_size = len(next(it))
-        if not all(len(data_item) == data_item_size for data_item in it):
+        if any(len(data_item) != data_item_size for data_item in it):
             raise RuntimeError(
                 'each data_itement in list of batch should be of equal size')
         transposed = list(zip(*data_batch))
@@ -82,14 +82,13 @@ def pseudo_collate(data_batch: Sequence) -> Any:
         if isinstance(data_item, tuple):
             return [pseudo_collate(samples)
                     for samples in transposed]  # Compat with Pytorch.
-        else:
-            try:
-                return data_item_type(
-                    [pseudo_collate(samples) for samples in transposed])
-            except TypeError:
-                # The sequence type may not support `__init__(iterable)`
-                # (e.g., `range`).
-                return [pseudo_collate(samples) for samples in transposed]
+        try:
+            return data_item_type(
+                [pseudo_collate(samples) for samples in transposed])
+        except TypeError:
+            # The sequence type may not support `__init__(iterable)`
+            # (e.g., `range`).
+            return [pseudo_collate(samples) for samples in transposed]
     elif isinstance(data_item, Mapping):
         return data_item_type({
             key: pseudo_collate([d[key] for d in data_batch])
@@ -140,7 +139,7 @@ def default_collate(data_batch: Sequence) -> Any:
         # consistent size
         it = iter(data_batch)
         data_item_size = len(next(it))
-        if not all(len(data_item) == data_item_size for data_item in it):
+        if any(len(data_item) != data_item_size for data_item in it):
             raise RuntimeError(
                 'each data_itement in list of batch should be of equal size')
         transposed = list(zip(*data_batch))
@@ -148,14 +147,13 @@ def default_collate(data_batch: Sequence) -> Any:
         if isinstance(data_item, tuple):
             return [default_collate(samples)
                     for samples in transposed]  # Compat with Pytorch.
-        else:
-            try:
-                return data_item_type(
-                    [default_collate(samples) for samples in transposed])
-            except TypeError:
-                # The sequence type may not support `__init__(iterable)`
-                # (e.g., `range`).
-                return [default_collate(samples) for samples in transposed]
+        try:
+            return data_item_type(
+                [default_collate(samples) for samples in transposed])
+        except TypeError:
+            # The sequence type may not support `__init__(iterable)`
+            # (e.g., `range`).
+            return [default_collate(samples) for samples in transposed]
     elif isinstance(data_item, Mapping):
         return data_item_type({
             key: default_collate([d[key] for d in data_batch])

@@ -61,8 +61,7 @@ class MMFormatter(logging.Formatter):
 
     def __init__(self, color: bool = True, blink: bool = False, **kwargs):
         super().__init__(**kwargs)
-        assert not (not color and blink), (
-            'blink should only be available when color is True')
+        assert color or not blink, 'blink should only be available when color is True'
         # Get prefix format according to color.
         error_prefix = self._get_prefix('ERROR', color, blink=True)
         warn_prefix = self._get_prefix('WARNING', color, blink=True)
@@ -95,10 +94,9 @@ class MMFormatter(logging.Formatter):
             attrs = ['underline']
             if blink:
                 attrs.append('blink')
-            prefix = colored(level, self._color_mapping[level], attrs=attrs)
+            return colored(level, self._color_mapping[level], attrs=attrs)
         else:
-            prefix = level
-        return prefix
+            return level
 
     def format(self, record: LogRecord) -> str:
         """Override the `logging.Formatter.format`` method `. Output the
@@ -120,8 +118,7 @@ class MMFormatter(logging.Formatter):
         elif record.levelno == logging.DEBUG:
             self._style._fmt = self.debug_format
 
-        result = logging.Formatter.format(self, record)
-        return result
+        return logging.Formatter.format(self, record)
 
 
 class MMLogger(Logger, ManagerMixin):
@@ -211,8 +208,7 @@ class MMLogger(Logger, ManagerMixin):
                               or distributed) and world_size > 1
             if is_distributed:
                 filename, suffix = osp.splitext(osp.basename(log_file))
-                hostname = _get_host_info()
-                if hostname:
+                if hostname := _get_host_info():
                     filename = (f'{filename}_{hostname}_device{device_id}_'
                                 f'rank{global_rank}{suffix}')
                 else:

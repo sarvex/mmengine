@@ -19,8 +19,7 @@ class ToyTTAPipeline:
 class ToyTestTimeAugModel(BaseTTAModel):
 
     def merge_preds(self, data_samples_list):
-        result = [sum(x) for x in data_samples_list]
-        return result
+        return [sum(x) for x in data_samples_list]
 
 
 class ToyModel(BaseModel):
@@ -51,8 +50,7 @@ class ToyDatasetTTA(Dataset):
 
     def __getitem__(self, index):
         result = dict(inputs=self.data[index], data_samples=self.label[index])
-        result = self.pipeline(result)
-        return result
+        return self.pipeline(result)
 
 
 class TestBaseTTAModel(RunnerTestCase):

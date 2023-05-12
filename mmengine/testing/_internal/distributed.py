@@ -125,9 +125,8 @@ class MultiProcessTestCase(TestCase):
             parent_conn, child_conn = torch.multiprocessing.Pipe()
             process = proc(
                 target=self.__class__._run,
-                name='process ' + str(rank),
-                args=(rank, self._current_test_name(), self.file_name,
-                      child_conn),
+                name=f'process {str(rank)}',
+                args=(rank, self._current_test_name(), self.file_name, child_conn),
             )
             process.start()
             self.pid_to_pipe[process.pid] = parent_conn
@@ -267,7 +266,7 @@ class MultiProcessTestCase(TestCase):
                     break
                 # All processes have joined cleanly if they all a valid
                 # exitcode
-                if all([p.exitcode is not None for p in self.processes]):
+                if all(p.exitcode is not None for p in self.processes):
                     break
                 # Check if we should time out the test. If so, we terminate
                 # each process.
@@ -298,9 +297,7 @@ class MultiProcessTestCase(TestCase):
         processes."""
         for i, p in enumerate(self.processes):
             if p.exitcode is None:
-                raise RuntimeError(
-                    'Process {} timed out after {} seconds'.format(
-                        i, elapsed_time))
+                raise RuntimeError(f'Process {i} timed out after {elapsed_time} seconds')
             self.assertNotEqual(self.TEST_ERROR_EXIT_CODE, p.exitcode)
 
     def _check_return_codes(self, elapsed_time) -> None:
@@ -308,25 +305,16 @@ class MultiProcessTestCase(TestCase):
         skips tests if they returned a return code indicating a skipping
         condition."""
         first_process = self.processes[0]
-        # first, we check if there are errors in actual processes
-        # (via TEST_ERROR_EXIT CODE), and raise an exception for those.
-        # the reason we do this is to attempt to raise a more helpful error
-        # message than "Process x terminated/timed out"
-        # TODO: we should pipe the exception of the failed subprocess here.
-        # Currently, the actual exception is displayed as a logging output.
-        errored_processes = [
-            (i, p) for i, p in enumerate(self.processes)
+        if errored_processes := [
+            (i, p)
+            for i, p in enumerate(self.processes)
             if p.exitcode == MultiProcessTestCase.TEST_ERROR_EXIT_CODE
-        ]
-        if errored_processes:
+        ]:
             error = ''
             for i, process in errored_processes:
                 # Get error from pipe.
                 error_message = self.pid_to_pipe[process.pid].recv()
-                error += (
-                    'Process {} exited with error code {} and exception:\n{}\n'
-                    .format(i, MultiProcessTestCase.TEST_ERROR_EXIT_CODE,
-                            error_message))
+                error += f'Process {i} exited with error code {MultiProcessTestCase.TEST_ERROR_EXIT_CODE} and exception:\n{error_message}\n'
 
             raise RuntimeError(error)
         # If no process exited uncleanly, we check for timeouts, and then

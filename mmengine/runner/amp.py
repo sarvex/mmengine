@@ -98,14 +98,13 @@ def autocast(device_type: Optional[str] = None,
         elif is_cuda_available():
             with torch.cuda.amp.autocast(enabled=enabled):
                 yield
-        else:
-            if not enabled:
-                yield
-            else:
-                raise RuntimeError(
-                    'If pytorch versions is between 1.5.0 and 1.10, '
-                    '`autocast` is only available in gpu mode')
+        elif enabled:
+            raise RuntimeError(
+                'If pytorch versions is between 1.5.0 and 1.10, '
+                '`autocast` is only available in gpu mode')
 
+        else:
+            yield
     else:
         # Modified from https://github.com/pytorch/pytorch/blob/master/torch/amp/autocast_mode.py # noqa: E501
         # This code should update with the `torch.autocast`.
@@ -133,20 +132,13 @@ def autocast(device_type: Optional[str] = None,
         elif device_type == 'mlu':
             pass
 
-        elif device_type == 'npu':
-            pass
-
-        else:
-            # Device like MPS does not support fp16 training or testing.
-            # If an inappropriate device is set and fp16 is enabled, an error
-            # will be thrown.
-            if enabled is False:
-                yield
-                return
-            else:
+        elif device_type != 'npu':
+            if enabled:
                 raise ValueError('User specified autocast device_type must be '
                                  f'cuda or cpu, but got {device_type}')
 
+            yield
+            return
         with torch.autocast(
                 device_type=device_type,
                 enabled=enabled,

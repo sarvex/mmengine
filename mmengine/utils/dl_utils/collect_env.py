@@ -16,12 +16,11 @@ from .parrots_wrapper import TORCH_VERSION, get_build_config, is_rocm_pytorch
 def _get_cuda_home():
     if TORCH_VERSION == 'parrots':
         from parrots.utils.build_extension import CUDA_HOME
+    elif is_rocm_pytorch():
+        from torch.utils.cpp_extension import ROCM_HOME
+        CUDA_HOME = ROCM_HOME
     else:
-        if is_rocm_pytorch():
-            from torch.utils.cpp_extension import ROCM_HOME
-            CUDA_HOME = ROCM_HOME
-        else:
-            from torch.utils.cpp_extension import CUDA_HOME
+        from torch.utils.cpp_extension import CUDA_HOME
     return CUDA_HOME
 
 
@@ -97,8 +96,7 @@ def collect_env():
         # indicating the compiler used, we use this to get the compiler name
         import io
         import sysconfig
-        cc = sysconfig.get_config_var('CC')
-        if cc:
+        if cc := sysconfig.get_config_var('CC'):
             cc = osp.basename(cc.split()[0])
             cc_info = subprocess.check_output(f'{cc} --version', shell=True)
             env_info['GCC'] = cc_info.decode('utf-8').partition(

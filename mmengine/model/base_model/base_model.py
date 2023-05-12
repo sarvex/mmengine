@@ -190,8 +190,7 @@ class BaseModel(BaseModule):
         # directly will cause the NPU to not be found.
         # Here, the input parameters are processed to avoid errors.
         if args and isinstance(args[0], str) and 'npu' in args[0]:
-            args = tuple(
-                [list(args)[0].replace('npu', torch.npu.native_device)])
+            args = (list(args)[0].replace('npu', torch.npu.native_device), )
         if kwargs and 'npu' in str(kwargs.get('device', '')):
             kwargs['device'] = kwargs['device'].replace(
                 'npu', torch.npu.native_device)

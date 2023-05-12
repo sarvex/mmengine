@@ -19,7 +19,7 @@ class DatasetWithoutMetainfo:
 
 
 class DatasetWithMetainfo(DatasetWithoutMetainfo):
-    metainfo: dict = dict()
+    metainfo: dict = {}
 
 
 class TestRuntimeInfoHook(RunnerTestCase):
@@ -52,7 +52,7 @@ class TestRuntimeInfoHook(RunnerTestCase):
         cfg.train_dataloader.dataset.type = 'DatasetWithMetainfo'
         runner = self.build_runner(cfg)
         hook.before_train(runner)
-        self.assertEqual(runner.message_hub.get_info('dataset_meta'), dict())
+        self.assertEqual(runner.message_hub.get_info('dataset_meta'), {})
 
     def test_before_train_epoch(self):
         cfg = copy.deepcopy(self.epoch_based_cfg)

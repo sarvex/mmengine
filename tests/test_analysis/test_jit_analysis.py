@@ -263,9 +263,7 @@ class RecursiveScopeNet(nn.Module):
         self.flops: int = fc_in * fc_out
 
     def forward(self, x: torch.Tensor, count: int = 3) -> torch.Tensor:
-        if count > 0:
-            return self(x, count - 1)
-        return self.fc(x)
+        return self(x, count - 1) if count > 0 else self.fc(x)
 
 
 class TraceWarningNet(nn.Module):
@@ -310,10 +308,7 @@ class TestJitModelAnalysis(unittest.TestCase):
         trace = torch.jit.trace(lin, (lin_x, ))
         node_kinds = [node.kind() for node in trace.graph.nodes()]
         assert 'aten::addmm' in node_kinds or 'aten::linear' in node_kinds
-        if 'aten::addmm' in node_kinds:
-            self.lin_op = 'addmm'
-        else:
-            self.lin_op = 'linear'
+        self.lin_op = 'addmm' if 'aten::addmm' in node_kinds else 'linear'
 
     def test_total(self) -> None:
         """Tests that JitModelAnalysis.total(module) returns the correct counts

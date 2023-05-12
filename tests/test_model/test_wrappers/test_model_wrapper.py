@@ -40,12 +40,7 @@ class ToyModel(BaseModel):
     def forward(self, inputs, data_sample=None, mode='tensor'):
         x = self.conv1(inputs)
         x = self.conv2(x)
-        if mode == 'loss':
-            return dict(loss=x)
-        elif mode == 'predict':
-            return x
-        else:
-            return x
+        return dict(loss=x) if mode == 'loss' else x
 
 
 class ComplexModel(BaseModel):

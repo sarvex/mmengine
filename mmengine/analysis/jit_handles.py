@@ -32,10 +32,7 @@ def get_shape(val: Any) -> Optional[List[int]]:
     Returns:
         list(int): return a list of ints.
     """
-    if val.isCompleteTensor():
-        return val.type().sizes()
-    else:
-        return None  # type: ignore
+    return val.type().sizes() if val.isCompleteTensor() else None
 
 
 """
@@ -67,15 +64,12 @@ def generic_activation_jit(op_name: Optional[str] = None) -> Handle:
     """
 
     def _generic_activation_jit(
-            i: Any, outputs: List[Any]) -> Union[typing.Counter[str], int]:
+                i: Any, outputs: List[Any]) -> Union[typing.Counter[str], int]:
         """This is a generic jit handle that counts the number of activations
         for any operation given the output shape."""
         out_shape = get_shape(outputs[0])
         ac_count = prod(out_shape)  # type: ignore
-        if op_name is None:
-            return ac_count  # type: ignore
-        else:
-            return Counter({op_name: ac_count})
+        return ac_count if op_name is None else Counter({op_name: ac_count})
 
     return _generic_activation_jit
 
@@ -91,20 +85,18 @@ def addmm_flop_jit(inputs: List[Any], outputs: List[Any]) -> Union[int, Any]:
     assert len(input_shapes[1]) == 2, input_shapes[1]  # type: ignore
     batch_size, input_dim = input_shapes[0]  # type: ignore
     output_dim = input_shapes[1][1]  # type: ignore
-    flops = batch_size * input_dim * output_dim
-    return flops
+    return batch_size * input_dim * output_dim
 
 
 def linear_flop_jit(inputs: List[Any], outputs: List[Any]) -> Union[int, Any]:
     """Count flops for the aten::linear operator."""
     # Inputs is a list of length 3; unlike aten::addmm, it is the first
     # two elements that are relevant.
-    input_shapes = [get_shape(v) for v in inputs[0:2]]
+    input_shapes = [get_shape(v) for v in inputs[:2]]
     # input_shapes[0]: [dim0, dim1, ..., input_feature_dim]
     # input_shapes[1]: [output_feature_dim, input_feature_dim]
     assert input_shapes[0][-1] == input_shapes[1][-1]  # type: ignore
-    flops = prod(input_shapes[0]) * input_shapes[1][0]  # type: ignore
-    return flops
+    return prod(input_shapes[0]) * input_shapes[1][0]
 
 
 def bmm_flop_jit(inputs: List[Any], outputs: List[Any]) -> Union[int, Any]:
@@ -115,8 +107,7 @@ def bmm_flop_jit(inputs: List[Any], outputs: List[Any]) -> Union[int, Any]:
     input_shapes = [get_shape(v) for v in inputs]
     n, c, t = input_shapes[0]  # type: ignore
     d = input_shapes[-1][-1]  # type: ignore
-    flop = n * c * t * d
-    return flop
+    return n * c * t * d
 
 
 def conv_flop_count(
@@ -142,8 +133,7 @@ def conv_flop_count(
     """
     batch_size = x_shape[0]
     conv_shape = (x_shape if transposed else out_shape)[2:]
-    flop = batch_size * prod(w_shape) * prod(conv_shape)
-    return flop
+    return batch_size * prod(w_shape) * prod(conv_shape)
 
 
 def conv_flop_jit(inputs: List[Any],
@@ -155,7 +145,7 @@ def conv_flop_jit(inputs: List[Any],
     # 5) dilation, 6) transposed, 7) out_pad, 8) groups, 9) benchmark_cudnn,
     # 10) deterministic_cudnn and 11) user_enabled_cudnn.
     # starting with #40737 it will be 12) user_enabled_tf32
-    assert len(inputs) == 12 or len(inputs) == 13, len(inputs)
+    assert len(inputs) in {12, 13}, len(inputs)
     x, w = inputs[:2]
     x_shape, w_shape, out_shape = (get_shape(x), get_shape(w),
                                    get_shape(outputs[0]))
@@ -193,23 +183,17 @@ def einsum_flop_jit(inputs: List[Any], outputs: List[Any]) -> Union[int, Any]:
     if equation == 'abc,abd->acd':
         n, c, t = input_shapes[0]  # type: ignore
         p = input_shapes[-1][-1]  # type: ignore
-        flop = n * c * t * p
-        return flop
-
+        return n * c * t * p
     elif equation == 'abc,adc->adb':
         n, t, g = input_shapes[0]  # type: ignore
         c = input_shapes[-1][1]  # type: ignore
-        flop = n * t * g * c
-        return flop
+        return n * t * g * c
     else:
         np_arrs = [np.zeros(s) for s in input_shapes]
         optim = np.einsum_path(equation, *np_arrs, optimize='optimal')[1]
         for line in optim.split('\n'):
             if 'optimized flop' in line.lower():
-                # divided by 2 because we count MAC
-                # (multiply-add counted as one flop)
-                flop = float(np.floor(float(line.split(':')[-1]) / 2))
-                return flop
+                return float(np.floor(float(line.split(':')[-1]) / 2))
         raise NotImplementedError('Unsupported einsum operation.')
 
 
@@ -224,8 +208,7 @@ def matmul_flop_jit(inputs: List[Any], outputs: List[Any]) -> Union[int, Any]:
         input2 = [input2[0], 1]
 
     assert input1[-1] == input2[-2], input_shapes
-    flop = prod(input1) * input2[-1]
-    return flop
+    return prod(input1) * input2[-1]
 
 
 def norm_flop_counter(affine_arg_index: int) -> Handle:

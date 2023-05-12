@@ -94,7 +94,6 @@ class IterTimerHook(Hook):
                 runner.iter - self.start_iter + 1)
             # Calculate eta.
             eta_sec = time_sec_avg * (runner.max_iters - runner.iter - 1)
-            runner.message_hub.update_info('eta', eta_sec)
         else:
             if mode == 'val':
                 cur_dataloader = runner.val_dataloader
@@ -104,4 +103,5 @@ class IterTimerHook(Hook):
             self.time_sec_test_val += iter_time.current()
             time_sec_avg = self.time_sec_test_val / (batch_idx + 1)
             eta_sec = time_sec_avg * (len(cur_dataloader) - batch_idx - 1)
-            runner.message_hub.update_info('eta', eta_sec)
+
+        runner.message_hub.update_info('eta', eta_sec)

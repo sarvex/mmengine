@@ -32,7 +32,7 @@ class TestProfilerHook(RunnerTestCase):
         # Test schedule_args
         ProfilerHook(schedule=dict(wait=1, warmup=1, active=3, repeat=1))
         with self.assertRaises(TypeError):
-            ProfilerHook(schedule=dict())
+            ProfilerHook(schedule={})
 
     def test_parse_trace_config(self):
         # Test on_trace_ready_args
